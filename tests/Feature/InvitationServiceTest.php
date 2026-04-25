@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\InvitationChannel;
+use App\Enums\PositionStatus;
 use App\Exceptions\ActiveInvitationExistsException;
 use App\Models\Agent;
 use App\Models\Campaign;
@@ -70,6 +71,31 @@ it('sends an email notification when agent has an email', function () {
     $token->refresh();
     expect($token->notification_channel)->toBe(InvitationChannel::Email);
     expect($token->notification_sent_at)->not->toBeNull();
+});
+
+it('builds an invitation email from the campaign and open positions', function () {
+    $agent = Agent::factory()->create([
+        'email' => 'agent@example.com',
+        'first_name' => 'Awa',
+        'last_name' => 'DIOP',
+    ]);
+    $campaign = Campaign::factory()->create(['title' => 'Recrutement DSI 2026']);
+    Position::factory()->create([
+        'campaign_id' => $campaign->id,
+        'title' => 'Ingénieur DevOps',
+    ]);
+    Position::factory()->create([
+        'campaign_id' => $campaign->id,
+        'title' => 'Poste fermé',
+        'status' => PositionStatus::Closed,
+    ]);
+    $token = $this->service->createToken($agent, $campaign);
+
+    $mail = (new InvitationNotification($token))->toMail($agent);
+
+    expect($mail->introLines)->toContain('Vous êtes invité(e) à soumettre un dossier de candidature pour la campagne : **Recrutement DSI 2026**.');
+    expect($mail->introLines)->toContain('Postes ouverts : Ingénieur DevOps.');
+    expect(implode(' ', $mail->introLines))->not->toContain('Poste fermé');
 });
 
 it('returns a manual message and sends no notification when agent has no email', function () {

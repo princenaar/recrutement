@@ -3,7 +3,6 @@
 namespace App\Filament\Resources\Agents\Pages;
 
 use App\Filament\Resources\Agents\AgentResource;
-use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ListRecords;
 
 class ListAgents extends ListRecords
@@ -12,8 +11,6 @@ class ListAgents extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [
-            CreateAction::make(),
-        ];
+        return [];
     }
 }

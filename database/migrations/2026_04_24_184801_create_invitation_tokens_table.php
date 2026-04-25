@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('invitation_tokens', function (Blueprint $table) {
             $table->id();
             $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('position_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('campaign_id')->constrained()->cascadeOnDelete();
             $table->uuid('token')->unique();
             $table->timestamp('expires_at');
             $table->timestamp('used_at')->nullable();
@@ -23,7 +23,7 @@ return new class extends Migration
             $table->timestamp('revoked_at')->nullable();
             $table->timestamps();
 
-            $table->index(['agent_id', 'position_id']);
+            $table->index(['agent_id', 'campaign_id']);
         });
     }
 

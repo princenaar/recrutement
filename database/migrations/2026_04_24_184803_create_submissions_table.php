@@ -19,7 +19,7 @@ return new class extends Migration
 
             $table->string('current_structure')->nullable();
             $table->string('current_service')->nullable();
-            $table->unsignedSmallInteger('years_in_service')->nullable();
+            $table->date('service_entry_date')->nullable();
             $table->text('motivation_note')->nullable();
             $table->string('cv_path')->nullable();
 

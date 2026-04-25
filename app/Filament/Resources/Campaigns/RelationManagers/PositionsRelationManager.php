@@ -60,9 +60,6 @@ class PositionsRelationManager extends RelationManager
                 TextColumn::make('submissions_count')
                     ->label('Candidatures')
                     ->counts('submissions'),
-                TextColumn::make('invitation_tokens_count')
-                    ->label('Invitations')
-                    ->counts('invitationTokens'),
             ])
             ->headerActions([
                 CreateAction::make()->label('Ajouter un poste'),

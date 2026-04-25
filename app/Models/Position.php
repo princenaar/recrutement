@@ -7,7 +7,6 @@ use Database\Factories\PositionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Position extends Model
 {
@@ -32,11 +31,6 @@ class Position extends Model
     public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
-    }
-
-    public function invitationTokens(): HasMany
-    {
-        return $this->hasMany(InvitationToken::class);
     }
 
     public function submissions(): HasMany

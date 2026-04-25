@@ -34,4 +34,9 @@ class Campaign extends Model
     {
         return $this->hasMany(Position::class);
     }
+
+    public function invitationTokens(): HasMany
+    {
+        return $this->hasMany(InvitationToken::class);
+    }
 }

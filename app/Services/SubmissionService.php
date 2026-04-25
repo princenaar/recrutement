@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\PositionStatus;
 use App\Enums\SubmissionStatus;
 use App\Exceptions\InvalidSubmissionFileException;
 use App\Models\Diploma;
 use App\Models\InvitationToken;
+use App\Models\Position;
 use App\Models\Submission;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Http\UploadedFile;
@@ -32,6 +34,10 @@ class SubmissionService
 
         if ($positionId === null) {
             throw new RuntimeException('Aucun poste sélectionné pour cette candidature.');
+        }
+
+        if ($existing === null) {
+            $this->assertPositionIsOpenForCampaign((int) $positionId, $token);
         }
 
         $submission = $existing ?? Submission::firstOrNew([
@@ -122,6 +128,19 @@ class SubmissionService
 
         if ($file->getSize() > $maxKb * 1024) {
             throw InvalidSubmissionFileException::tooLarge($file->getClientOriginalName(), $maxKb);
+        }
+    }
+
+    private function assertPositionIsOpenForCampaign(int $positionId, InvitationToken $token): void
+    {
+        $exists = Position::query()
+            ->whereKey($positionId)
+            ->where('campaign_id', $token->campaign_id)
+            ->where('status', PositionStatus::Open)
+            ->exists();
+
+        if (! $exists) {
+            throw new RuntimeException('Le poste sélectionné ne fait pas partie des postes ouverts de cette campagne.');
         }
     }
 

@@ -7,8 +7,10 @@ use App\Models\Diploma;
 use App\Models\Position;
 use App\Models\Submission;
 use App\Services\InvitationService;
+use App\Services\SubmissionService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\ViewErrorBag;
 
 beforeEach(function () {
     Storage::fake(config('recrutement.storage_disk'));
@@ -38,7 +40,8 @@ it('shows the revoked error view for a revoked token', function () {
 
     $this->get(route('candidate.portal', ['token' => $this->token->token]))
         ->assertOk()
-        ->assertViewIs('candidate.error');
+        ->assertViewIs('candidate.error')
+        ->assertSee('Ce lien n\'est plus valide', false);
 });
 
 it('shows the expired view when the token has expired', function () {
@@ -46,7 +49,8 @@ it('shows the expired view when the token has expired', function () {
 
     $this->get(route('candidate.portal', ['token' => $this->token->token]))
         ->assertOk()
-        ->assertViewIs('candidate.expired');
+        ->assertViewIs('candidate.expired')
+        ->assertSee('Ce lien d\'invitation a expiré', false);
 });
 
 it('renders the portal with agent data and open positions for a valid token', function () {
@@ -101,6 +105,30 @@ it('rejects a position that is not part of the campaign', function () {
     ])->assertSessionHasErrors('position_id');
 
     expect(Submission::count())->toBe(0);
+});
+
+it('rejects a foreign position when the submission service is called directly', function () {
+    $otherCampaign = Campaign::factory()->create();
+    $foreignPosition = Position::factory()->create([
+        'campaign_id' => $otherCampaign->id,
+        'status' => PositionStatus::Open,
+    ]);
+
+    expect(fn () => app(SubmissionService::class)->saveDraft($this->token, [
+        'position_id' => $foreignPosition->id,
+    ], null))->toThrow(RuntimeException::class);
+
+    expect(Submission::count())->toBe(0);
+});
+
+it('renders the submitted confirmation content inside the candidate layout', function () {
+    $html = view('candidate.submitted', [
+        'errors' => new ViewErrorBag,
+        'token' => $this->token,
+    ])->render();
+
+    expect($html)->toContain('Votre dossier a bien été enregistré');
+    expect($html)->toContain('Retour à mon dossier');
 });
 
 it('locks the position once a submission has been submitted', function () {
