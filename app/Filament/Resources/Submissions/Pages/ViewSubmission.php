@@ -12,6 +12,8 @@ class ViewSubmission extends ViewRecord
 {
     protected static string $resource = SubmissionResource::class;
 
+    protected static ?string $title = 'Détail de la candidature';
+
     protected function getHeaderActions(): array
     {
         return [

@@ -10,10 +10,13 @@ class EditCampaign extends EditRecord
 {
     protected static string $resource = CampaignResource::class;
 
+    protected static ?string $title = 'Modifier la campagne';
+
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            DeleteAction::make()
+                ->label('Supprimer'),
         ];
     }
 }

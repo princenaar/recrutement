@@ -24,6 +24,7 @@ class ShortlistAction extends Action
             ->color('success')
             ->requiresConfirmation()
             ->modalHeading('Présélectionner ce candidat ?')
+            ->modalSubmitActionLabel('Présélectionner')
             ->visible(fn (Submission $record) => $record->status !== SubmissionStatus::Shortlisted)
             ->action(function (Submission $record): void {
                 $record->update([

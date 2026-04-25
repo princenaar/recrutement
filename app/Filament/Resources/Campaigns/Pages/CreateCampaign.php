@@ -8,4 +8,6 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateCampaign extends CreateRecord
 {
     protected static string $resource = CampaignResource::class;
+
+    protected static ?string $title = 'Créer une campagne';
 }

@@ -25,6 +25,16 @@ class SubmissionResource extends Resource
 
     protected static ?int $navigationSort = 30;
 
+    public static function getModelLabel(): string
+    {
+        return 'candidature';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'candidatures';
+    }
+
     public static function infolist(Schema $schema): Schema
     {
         return SubmissionInfolist::configure($schema);

@@ -24,6 +24,7 @@ class RejectAction extends Action
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->modalHeading('Rejeter cette candidature')
+            ->modalSubmitActionLabel('Rejeter')
             ->visible(fn (Submission $record) => $record->status !== SubmissionStatus::Rejected)
             ->schema([
                 Textarea::make('rejection_note')

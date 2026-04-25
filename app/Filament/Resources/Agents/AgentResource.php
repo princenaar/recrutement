@@ -24,6 +24,16 @@ class AgentResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'matricule';
 
+    public static function getModelLabel(): string
+    {
+        return 'agent';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'agents';
+    }
+
     public static function table(Table $table): Table
     {
         return AgentsTable::configure($table);

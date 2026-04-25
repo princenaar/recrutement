@@ -91,6 +91,8 @@ class InvitationTokensTable
                     ->icon('heroicon-o-envelope')
                     ->visible(fn (InvitationToken $record) => $record->isActive() && $record->agent->email !== null)
                     ->requiresConfirmation()
+                    ->modalHeading('Renvoyer le mail d\'invitation ?')
+                    ->modalSubmitActionLabel('Renvoyer')
                     ->action(function (InvitationToken $record): void {
                         $record->loadMissing(['agent', 'campaign']);
                         NotificationFacade::send($record->agent, new InvitationNotification($record));
@@ -107,6 +109,8 @@ class InvitationTokensTable
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
+                    ->modalHeading('Révoquer ce lien d\'invitation ?')
+                    ->modalSubmitActionLabel('Révoquer')
                     ->visible(fn (InvitationToken $record) => $record->isActive())
                     ->action(function (InvitationToken $record): void {
                         $record->update(['revoked_at' => now()]);

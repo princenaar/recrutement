@@ -22,6 +22,16 @@ class InvitationTokenResource extends Resource
 
     protected static ?int $navigationSort = 40;
 
+    public static function getModelLabel(): string
+    {
+        return 'invitation';
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return 'invitations';
+    }
+
     public static function table(Table $table): Table
     {
         return InvitationTokensTable::configure($table);

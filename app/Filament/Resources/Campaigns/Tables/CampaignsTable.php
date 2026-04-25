@@ -40,12 +40,14 @@ class CampaignsTable
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label('Modifier'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                    DeleteBulkAction::make()
+                        ->label('Supprimer'),
+                ])->label('Actions groupées'),
             ]);
     }
 }

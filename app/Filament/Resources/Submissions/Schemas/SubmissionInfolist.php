@@ -3,6 +3,8 @@
 namespace App\Filament\Resources\Submissions\Schemas;
 
 use Filament\Infolists\Components\IconEntry;
+use Filament\Infolists\Components\RepeatableEntry;
+use Filament\Infolists\Components\RepeatableEntry\TableColumn;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -22,9 +24,12 @@ class SubmissionInfolist
                         TextEntry::make('agent.birth_date')->label('Date de naissance')->date('d/m/Y'),
                         TextEntry::make('agent.email')->label('Email')->placeholder('—'),
                         TextEntry::make('agent.phone')->label('Téléphone')->placeholder('—'),
-                        TextEntry::make('agent.category')->label('Catégorie'),
-                        TextEntry::make('agent.agent_status')->label('Statut'),
+                        TextEntry::make('agent.category')->label('Catégorie')->badge(),
+                        TextEntry::make('agent.agent_status')->label('Statut agent')->badge(),
+                        TextEntry::make('agent.contract_type')->label('Type de contrat')->placeholder('—'),
+                        TextEntry::make('agent.current_position')->label('Fonction actuelle')->placeholder('—'),
                         TextEntry::make('agent.structure')->label('Structure (iHRIS)'),
+                        TextEntry::make('agent.service')->label('Service (iHRIS)')->placeholder('—'),
                         TextEntry::make('agent.region')->label('Région'),
                     ]),
 
@@ -33,6 +38,8 @@ class SubmissionInfolist
                     ->schema([
                         TextEntry::make('position.title')->label('Poste'),
                         TextEntry::make('position.campaign.title')->label('Campagne'),
+                        TextEntry::make('position.status')->label('Statut du poste')->badge(),
+                        TextEntry::make('position.campaign.status')->label('Statut de la campagne')->badge(),
                     ]),
 
                 Section::make('Dossier soumis')
@@ -55,24 +62,42 @@ class SubmissionInfolist
                             ->label('Note de motivation')
                             ->columnSpanFull()
                             ->placeholder('—'),
-                        IconEntry::make('cv_path')
-                            ->label('CV téléversé')
-                            ->boolean()
-                            ->state(fn ($record) => $record->cv_path !== null),
                     ]),
 
-                Section::make('Diplômes')
+                Section::make('Documents')
+                    ->columns(2)
                     ->schema([
-                        TextEntry::make('diplomas')
-                            ->label('')
-                            ->state(fn ($record) => $record->diplomas
-                                ->map(fn ($d) => trim(sprintf(
-                                    '%s — %s%s',
-                                    $d->title,
-                                    $d->institution ?? '',
-                                    $d->year ? " ({$d->year})" : '',
-                                )))
-                                ->implode("\n"))
+                        IconEntry::make('cv_path')
+                            ->label('CV reçu')
+                            ->boolean()
+                            ->state(fn ($record) => $record->cv_path !== null),
+                        TextEntry::make('cv_path')
+                            ->label('CV')
+                            ->formatStateUsing(fn () => 'Télécharger le CV')
+                            ->url(fn ($record) => $record->cv_path !== null
+                                ? route('admin.files.cv', ['submission' => $record->id])
+                                : null)
+                            ->openUrlInNewTab()
+                            ->visible(fn ($record) => $record->cv_path !== null),
+                        RepeatableEntry::make('diplomas')
+                            ->label('Diplômes')
+                            ->columnSpanFull()
+                            ->table([
+                                TableColumn::make('Titre'),
+                                TableColumn::make('Établissement'),
+                                TableColumn::make('Année'),
+                                TableColumn::make('Fichier'),
+                            ])
+                            ->schema([
+                                TextEntry::make('title')->label('Titre'),
+                                TextEntry::make('institution')->label('Établissement')->placeholder('—'),
+                                TextEntry::make('year')->label('Année')->placeholder('—'),
+                                TextEntry::make('file_path')
+                                    ->label('Fichier')
+                                    ->formatStateUsing(fn () => 'Télécharger')
+                                    ->url(fn ($record) => route('admin.files.diploma', ['diploma' => $record->id]))
+                                    ->openUrlInNewTab(),
+                            ])
                             ->placeholder('Aucun diplôme.'),
                     ]),
 

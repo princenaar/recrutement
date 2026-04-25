@@ -9,6 +9,8 @@ class ListSubmissions extends ListRecords
 {
     protected static string $resource = SubmissionResource::class;
 
+    protected static ?string $title = 'Candidatures';
+
     protected function getHeaderActions(): array
     {
         return [];

@@ -65,13 +65,16 @@ class PositionsRelationManager extends RelationManager
                 CreateAction::make()->label('Ajouter un poste'),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->label('Modifier'),
+                DeleteAction::make()
+                    ->label('Supprimer'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
-                ]),
+                    DeleteBulkAction::make()
+                        ->label('Supprimer'),
+                ])->label('Actions groupées'),
             ]);
     }
 }
