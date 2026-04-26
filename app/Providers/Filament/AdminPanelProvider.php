@@ -30,8 +30,12 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName('DRH MSHP')
+            ->brandLogo(fn (): string => asset('images/logo_mshp.png'))
+            ->brandLogoHeight('2.75rem')
+            ->favicon(asset('images/logo_mshp.png'))
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Emerald,
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
@@ -41,7 +45,6 @@ class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
                 AccountWidget::class,
-                FilamentInfoWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,
@@ -57,6 +60,18 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): View => view('filament.branding.styles'),
+            )
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_BEFORE,
+                fn (): View => view('filament.branding.header'),
+            )
+            ->renderHook(
+                PanelsRenderHook::FOOTER,
+                fn (): View => view('filament.branding.footer'),
+            )
             ->renderHook(
                 PanelsRenderHook::BODY_END,
                 fn (): View => view('filament.scripts.copy-to-clipboard'),

@@ -36,12 +36,8 @@
                 <dd class="font-medium">{{ $agent->matricule }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Prénom</dt>
-                <dd class="font-medium">{{ $agent->first_name }}</dd>
-            </div>
-            <div>
-                <dt class="text-gray-500">Nom</dt>
-                <dd class="font-medium">{{ $agent->last_name }}</dd>
+                <dt class="text-gray-500">Nom de l'agent</dt>
+                <dd class="font-medium">{{ trim($agent->first_name.' '.$agent->last_name) }}</dd>
             </div>
             <div>
                 <dt class="text-gray-500">Genre</dt>
@@ -68,7 +64,7 @@
                 <dd class="font-medium">{{ $agent->employer ?? '—' }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Entrée dans la santé (iHRIS)</dt>
+                <dt class="text-gray-500">Date d'entrée dans le système de santé</dt>
                 <dd class="font-medium">{{ $agent->entry_date?->format('d/m/Y') ?? '—' }}</dd>
             </div>
             <div>
@@ -87,6 +83,7 @@
     </section>
 
     <form
+        id="candidate-submission-form"
         action="{{ route('candidate.save', ['token' => $token->token]) }}"
         method="POST"
         enctype="multipart/form-data"
@@ -183,19 +180,11 @@
                     type="file"
                     name="cv"
                     accept="application/pdf"
-                    class="mt-1 block w-full text-sm"
+                    class="mt-2 block w-full cursor-pointer rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-gray-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
                 >
+                <span class="mt-2 block text-xs text-gray-500">Sélectionnez un CV au format PDF.</span>
             </label>
         </section>
-
-        <div class="flex justify-end">
-            <button
-                type="submit"
-                class="rounded-md bg-emerald-700 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-            >
-                Enregistrer mon dossier
-            </button>
-        </div>
     </form>
 
     <section class="rounded-lg border border-gray-200 bg-white p-6 mt-8">
@@ -248,7 +237,14 @@
             </label>
             <label class="block">
                 <span class="text-sm font-medium text-gray-700">Fichier PDF (max {{ $maxMb }} Mo)</span>
-                <input type="file" name="file" accept="application/pdf" required class="mt-1 block w-full text-sm">
+                <input
+                    type="file"
+                    name="file"
+                    accept="application/pdf"
+                    required
+                    class="mt-2 block w-full cursor-pointer rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-gray-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                >
+                <span class="mt-2 block text-xs text-gray-500">Ajoutez le justificatif du diplôme en PDF.</span>
             </label>
             <div class="sm:col-span-2 flex justify-end">
                 <button type="submit" class="rounded-md bg-gray-800 px-5 py-2 text-sm font-medium text-white hover:bg-gray-900">
@@ -257,4 +253,14 @@
             </div>
         </form>
     </section>
+
+    <div class="mt-8 flex justify-end">
+        <button
+            type="submit"
+            form="candidate-submission-form"
+            class="rounded-md bg-emerald-700 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+        >
+            Enregistrer mon dossier
+        </button>
+    </div>
 @endsection
