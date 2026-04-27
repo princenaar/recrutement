@@ -15,6 +15,8 @@
     $isLocked = $submission?->submitted_at !== null;
     $selectedPositionId = old('position_id', $submission?->position_id);
     $selectedPosition = $positions->firstWhere('id', (int) $selectedPositionId);
+    $hasDiplomas = $submission?->diplomas?->isNotEmpty() === true;
+    $newDiplomaRows = old('new_diplomas', $hasDiplomas ? [] : [['title' => '', 'institution' => '', 'year' => '']]);
 @endphp
 
 @section('content')
@@ -192,95 +194,128 @@
                     type="file"
                     name="cv"
                     accept="application/pdf"
+                    @if (! $submission?->cv_path) required @endif
                     class="mt-2 block w-full cursor-pointer rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-gray-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
                 >
                 <span class="mt-2 block text-xs text-gray-500">Sélectionnez un CV au format PDF.</span>
             </label>
         </section>
-    </form>
 
-    <section class="rounded-lg border border-gray-200 bg-white p-6 mt-8">
-        <h3 class="text-base font-semibold mb-4 text-gray-900">D. Diplômes</h3>
+        <section class="rounded-lg border border-gray-200 bg-white p-6">
+            <h3 class="text-base font-semibold mb-4 text-gray-900">D. Diplômes</h3>
 
-        @if ($submission?->diplomas?->isNotEmpty())
-            <ul class="divide-y divide-gray-200 mb-6">
-                @foreach ($submission->diplomas as $diploma)
-                    <li class="flex items-center justify-between py-3 text-sm">
-                        <div>
-                            <p class="font-medium">{{ $diploma->title }}</p>
-                            <p class="text-gray-500">
-                                {{ $diploma->institution ?? '—' }}
-                                @if ($diploma->year) — {{ $diploma->year }} @endif
-                            </p>
+            @if ($hasDiplomas)
+                <ul class="divide-y divide-gray-200 mb-6">
+                    @foreach ($submission->diplomas as $diploma)
+                        <li class="py-3 text-sm">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="font-medium">{{ $diploma->title }}</p>
+                                    <p class="text-gray-500">
+                                        {{ $diploma->institution ?? '—' }}
+                                        @if ($diploma->year) — {{ $diploma->year }} @endif
+                                    </p>
+                                </div>
+                                <label class="inline-flex items-center gap-2 text-sm text-red-700">
+                                    <input
+                                        type="checkbox"
+                                        name="diplomas_to_delete[]"
+                                        value="{{ $diploma->id }}"
+                                        class="rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                    >
+                                    Supprimer
+                                </label>
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p class="text-sm text-gray-500 mb-6">Aucun diplôme enregistré pour le moment. Ajoutez au moins un diplôme avant d’enregistrer votre dossier.</p>
+            @endif
+
+            <div class="border-t border-gray-200 pt-4">
+                <div id="new-diplomas" class="space-y-4">
+                    @foreach ($newDiplomaRows as $index => $diploma)
+                        <div class="new-diploma-row rounded-md border border-gray-200 bg-gray-50 p-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <label class="block">
+                                    <span class="text-sm font-medium text-gray-700">Intitulé du diplôme</span>
+                                    <input
+                                        type="text"
+                                        name="new_diplomas[{{ $index }}][title]"
+                                        value="{{ $diploma['title'] ?? '' }}"
+                                        required
+                                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                    >
+                                </label>
+                                <label class="block">
+                                    <span class="text-sm font-medium text-gray-700">Établissement</span>
+                                    <input
+                                        type="text"
+                                        name="new_diplomas[{{ $index }}][institution]"
+                                        value="{{ $diploma['institution'] ?? '' }}"
+                                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                    >
+                                </label>
+                                <label class="block">
+                                    <span class="text-sm font-medium text-gray-700">Année d'obtention</span>
+                                    <input
+                                        type="number"
+                                        name="new_diplomas[{{ $index }}][year]"
+                                        value="{{ $diploma['year'] ?? '' }}"
+                                        min="1950"
+                                        max="{{ (int) date('Y') }}"
+                                        class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                    >
+                                </label>
+                                <label class="block">
+                                    <span class="text-sm font-medium text-gray-700">Fichier PDF (max {{ $maxMb }} Mo)</span>
+                                    <input
+                                        type="file"
+                                        name="new_diplomas[{{ $index }}][file]"
+                                        accept="application/pdf"
+                                        required
+                                        class="mt-2 block w-full cursor-pointer rounded-md border border-dashed border-gray-300 bg-white text-sm text-gray-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-gray-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                                    >
+                                </label>
+                            </div>
+                            <div class="mt-4 flex justify-end">
+                                <button type="button" class="remove-diploma-row text-sm text-red-600 hover:text-red-800">
+                                    Retirer cette ligne
+                                </button>
+                            </div>
                         </div>
-                        <form
-                            action="{{ route('candidate.diploma.remove', ['token' => $token->token, 'diploma' => $diploma->id]) }}"
-                            method="POST"
-                        >
-                            @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-sm text-red-600 hover:text-red-800">Supprimer</button>
-                        </form>
-                    </li>
-                @endforeach
-            </ul>
-        @else
-            <p class="text-sm text-gray-500 mb-6">Aucun diplôme enregistré pour le moment.</p>
-        @endif
+                    @endforeach
+                </div>
 
-        <form
-            action="{{ route('candidate.diploma.add', ['token' => $token->token]) }}"
-            method="POST"
-            enctype="multipart/form-data"
-            class="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-gray-200 pt-4"
-        >
-            @csrf
-            <label class="block">
-                <span class="text-sm font-medium text-gray-700">Intitulé du diplôme</span>
-                <input type="text" name="title" required class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
-            </label>
-            <label class="block">
-                <span class="text-sm font-medium text-gray-700">Établissement</span>
-                <input type="text" name="institution" class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
-            </label>
-            <label class="block">
-                <span class="text-sm font-medium text-gray-700">Année d'obtention</span>
-                <input type="number" name="year" min="1950" max="{{ (int) date('Y') }}" class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
-            </label>
-            <label class="block">
-                <span class="text-sm font-medium text-gray-700">Fichier PDF (max {{ $maxMb }} Mo)</span>
-                <input
-                    type="file"
-                    name="file"
-                    accept="application/pdf"
-                    required
-                    class="mt-2 block w-full cursor-pointer rounded-md border border-dashed border-gray-300 bg-gray-50 text-sm text-gray-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-gray-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+                <button
+                    type="button"
+                    id="add-diploma-row"
+                    class="mt-4 rounded-md bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900"
                 >
-                <span class="mt-2 block text-xs text-gray-500">Ajoutez le justificatif du diplôme en PDF.</span>
-            </label>
-            <div class="sm:col-span-2 flex justify-end">
-                <button type="submit" class="rounded-md bg-gray-800 px-5 py-2 text-sm font-medium text-white hover:bg-gray-900">
-                    Ajouter ce diplôme
+                    Ajouter un diplôme
                 </button>
             </div>
-        </form>
-    </section>
+        </section>
 
-    <div class="mt-8 flex justify-end">
-        <button
-            type="submit"
-            form="candidate-submission-form"
-            class="rounded-md bg-emerald-700 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-        >
-            Enregistrer mon dossier
-        </button>
-    </div>
+        <div class="mt-8 flex justify-end">
+            <button
+                type="submit"
+                class="rounded-md bg-emerald-700 px-5 py-2 text-sm font-semibold text-white hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+            >
+                Enregistrer mon dossier
+            </button>
+        </div>
+    </form>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const positionSelect = document.querySelector('select[name="position_id"]');
             const profilePanel = document.getElementById('position-required-profile');
             const profileText = document.getElementById('position-required-profile-text');
+            const newDiplomas = document.getElementById('new-diplomas');
+            const addDiplomaRow = document.getElementById('add-diploma-row');
+            let diplomaIndex = {{ count($newDiplomaRows) }};
 
             if (! positionSelect || ! profilePanel || ! profileText) {
                 return;
@@ -296,6 +331,48 @@
 
             positionSelect.addEventListener('change', refreshRequiredProfile);
             refreshRequiredProfile();
+
+            const bindRemoveButtons = () => {
+                document.querySelectorAll('.remove-diploma-row').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        button.closest('.new-diploma-row')?.remove();
+                    });
+                });
+            };
+
+            addDiplomaRow?.addEventListener('click', () => {
+                const row = document.createElement('div');
+                row.className = 'new-diploma-row rounded-md border border-gray-200 bg-gray-50 p-4';
+                row.innerHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Intitulé du diplôme</span>
+                            <input type="text" name="new_diplomas[${diplomaIndex}][title]" required class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Établissement</span>
+                            <input type="text" name="new_diplomas[${diplomaIndex}][institution]" class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Année d'obtention</span>
+                            <input type="number" name="new_diplomas[${diplomaIndex}][year]" min="1950" max="{{ (int) date('Y') }}" class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm font-medium text-gray-700">Fichier PDF (max {{ $maxMb }} Mo)</span>
+                            <input type="file" name="new_diplomas[${diplomaIndex}][file]" accept="application/pdf" required class="mt-2 block w-full cursor-pointer rounded-md border border-dashed border-gray-300 bg-white text-sm text-gray-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-gray-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                        </label>
+                    </div>
+                    <div class="mt-4 flex justify-end">
+                        <button type="button" class="remove-diploma-row text-sm text-red-600 hover:text-red-800">Retirer cette ligne</button>
+                    </div>
+                `;
+
+                newDiplomas?.appendChild(row);
+                diplomaIndex++;
+                bindRemoveButtons();
+            });
+
+            bindRemoveButtons();
         });
     </script>
 @endsection

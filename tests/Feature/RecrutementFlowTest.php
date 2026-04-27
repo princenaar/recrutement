@@ -85,6 +85,7 @@ it('runs the complete recruitment flow end-to-end', function () {
 
     // 6. Agent picks a position, POSTs the form + CV → submitted_at is set, file stored
     $cv = UploadedFile::fake()->createWithContent('cv.pdf', 'PDF-CONTENT-V1');
+    $diplomaFile = UploadedFile::fake()->createWithContent('diplome.pdf', 'PDF-DIPLOMA');
     $this->post(route('candidate.save', ['token' => $tokenWithEmail->token]), [
         'position_id' => $position->id,
         'current_structure' => 'Hôpital Le Dantec',
@@ -92,6 +93,14 @@ it('runs the complete recruitment flow end-to-end', function () {
         'service_entry_date' => now()->subYears(6)->format('Y-m-d'),
         'motivation_note' => 'Très intéressé par ce poste.',
         'cv' => $cv,
+        'new_diplomas' => [
+            [
+                'title' => 'Master MIAGE',
+                'institution' => 'UCAD',
+                'year' => 2018,
+                'file' => $diplomaFile,
+            ],
+        ],
     ])->assertRedirect();
 
     $submission = Submission::where('agent_id', $agentWithEmail->id)->where('position_id', $position->id)->first();
@@ -112,6 +121,7 @@ it('runs the complete recruitment flow end-to-end', function () {
     $this->post(route('candidate.save', ['token' => $tokenWithEmail->token]), [
         'position_id' => $secondPosition->id, // tries to switch — should be ignored
         'current_structure' => 'Hôpital Principal',
+        'current_service' => 'DSI',
         'motivation_note' => 'Mise à jour de ma motivation.',
     ])->assertRedirect();
 
@@ -138,6 +148,9 @@ it('runs the complete recruitment flow end-to-end', function () {
         'invitation_token_id' => $tokenManual->id,
         'agent_id' => $agentWithoutEmail->id,
         'position_id' => $position->id,
+        'current_structure' => 'Hôpital Principal',
+        'current_service' => 'DSI',
+        'cv_path' => "submissions/{$tokenManual->token}/cv.pdf",
         'status' => SubmissionStatus::Submitted,
         'submitted_at' => now(),
         'last_updated_at' => now(),
@@ -165,10 +178,18 @@ it('blocks portal access when token is revoked or expired even after a submissio
 
     // Submit normally first
     $cv = UploadedFile::fake()->createWithContent('cv.pdf', 'CV');
+    $diplomaFile = UploadedFile::fake()->createWithContent('diplome.pdf', 'PDF');
     $this->post(route('candidate.save', ['token' => $token->token]), [
         'position_id' => $position->id,
         'current_structure' => 'Initial',
+        'current_service' => 'Service',
         'cv' => $cv,
+        'new_diplomas' => [
+            [
+                'title' => 'Licence',
+                'file' => $diplomaFile,
+            ],
+        ],
     ])->assertRedirect();
 
     // Token gets revoked → portal access is blocked even though submission exists

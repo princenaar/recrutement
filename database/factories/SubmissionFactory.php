@@ -29,6 +29,7 @@ class SubmissionFactory extends Factory
             'current_service' => fake()->words(2, true),
             'service_entry_date' => fake()->dateTimeBetween('-30 years', '-1 year')->format('Y-m-d'),
             'motivation_note' => fake()->paragraph(),
+            'cv_path' => 'submissions/fake-token/cv.pdf',
             'status' => SubmissionStatus::Draft,
         ];
     }

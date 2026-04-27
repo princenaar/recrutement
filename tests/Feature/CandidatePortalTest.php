@@ -69,6 +69,8 @@ it('renders the portal with agent data and open positions for a valid token', fu
 
 it('saves the editable fields, position choice and CV via POST', function () {
     $cv = UploadedFile::fake()->createWithContent('cv.pdf', 'PDF-DATA');
+    $firstDiplomaFile = UploadedFile::fake()->createWithContent('master.pdf', 'PDF-DIPLOMA-1');
+    $secondDiplomaFile = UploadedFile::fake()->createWithContent('licence.pdf', 'PDF-DIPLOMA-2');
 
     $response = $this->post(route('candidate.save', ['token' => $this->token->token]), [
         'position_id' => $this->position->id,
@@ -77,6 +79,20 @@ it('saves the editable fields, position choice and CV via POST', function () {
         'service_entry_date' => '2018-04-15',
         'motivation_note' => 'Voici ma motivation.',
         'cv' => $cv,
+        'new_diplomas' => [
+            [
+                'title' => 'Master MIAGE',
+                'institution' => 'UCAD',
+                'year' => 2018,
+                'file' => $firstDiplomaFile,
+            ],
+            [
+                'title' => 'Licence Informatique',
+                'institution' => 'UGB',
+                'year' => 2015,
+                'file' => $secondDiplomaFile,
+            ],
+        ],
     ]);
 
     $response->assertRedirect();
@@ -92,6 +108,23 @@ it('saves the editable fields, position choice and CV via POST', function () {
 
     Storage::disk(config('recrutement.storage_disk'))
         ->assertExists("submissions/{$this->token->token}/cv.pdf");
+
+    expect($submission->diplomas)->toHaveCount(2);
+    expect($submission->diplomas->pluck('title')->all())->toBe(['Master MIAGE', 'Licence Informatique']);
+});
+
+it('requires the selected position, structure, service, CV and at least one diploma', function () {
+    $this->post(route('candidate.save', ['token' => $this->token->token]), [])
+        ->assertSessionHasErrors([
+            'position_id',
+            'current_structure',
+            'current_service',
+            'cv',
+            'new_diplomas',
+        ]);
+
+    expect(Submission::count())->toBe(0);
+    expect(Diploma::count())->toBe(0);
 });
 
 it('rejects a position that is not part of the campaign', function () {
@@ -104,6 +137,14 @@ it('rejects a position that is not part of the campaign', function () {
     $this->post(route('candidate.save', ['token' => $this->token->token]), [
         'position_id' => $foreignPosition->id,
         'current_structure' => 'Hôpital',
+        'current_service' => 'Service',
+        'cv' => UploadedFile::fake()->createWithContent('cv.pdf', 'PDF'),
+        'new_diplomas' => [
+            [
+                'title' => 'Licence',
+                'file' => UploadedFile::fake()->createWithContent('diplome.pdf', 'PDF'),
+            ],
+        ],
     ])->assertSessionHasErrors('position_id');
 
     expect(Submission::count())->toBe(0);
@@ -135,9 +176,18 @@ it('renders the submitted confirmation content inside the candidate layout', fun
 
 it('locks the position once a submission has been submitted', function () {
     $cv = UploadedFile::fake()->createWithContent('cv.pdf', 'PDF');
+    $diplomaFile = UploadedFile::fake()->createWithContent('diplome.pdf', 'PDF');
     $this->post(route('candidate.save', ['token' => $this->token->token]), [
         'position_id' => $this->position->id,
+        'current_structure' => 'Hôpital',
+        'current_service' => 'Service',
         'cv' => $cv,
+        'new_diplomas' => [
+            [
+                'title' => 'Licence',
+                'file' => $diplomaFile,
+            ],
+        ],
     ])->assertRedirect();
 
     $secondPosition = Position::factory()->create([
@@ -149,6 +199,7 @@ it('locks the position once a submission has been submitted', function () {
     $this->post(route('candidate.save', ['token' => $this->token->token]), [
         'position_id' => $secondPosition->id,
         'current_structure' => 'Updated',
+        'current_service' => 'Service',
     ])->assertRedirect();
 
     $submission = Submission::where('agent_id', $this->agent->id)->first();
@@ -160,6 +211,14 @@ it('ignores attempts to overwrite iHRIS fields via POST', function () {
     $this->post(route('candidate.save', ['token' => $this->token->token]), [
         'position_id' => $this->position->id,
         'current_structure' => 'Nouvelle Structure',
+        'current_service' => 'Service',
+        'cv' => UploadedFile::fake()->createWithContent('cv.pdf', 'PDF'),
+        'new_diplomas' => [
+            [
+                'title' => 'Licence',
+                'file' => UploadedFile::fake()->createWithContent('diplome.pdf', 'PDF'),
+            ],
+        ],
         'matricule' => 'HACKED',
         'first_name' => 'Hacker',
         'agent_id' => 999,
@@ -179,44 +238,55 @@ it('rejects an expired token on POST', function () {
     $this->post(route('candidate.save', ['token' => $this->token->token]), [
         'position_id' => $this->position->id,
         'current_structure' => 'Test',
+        'current_service' => 'Service',
+        'cv' => UploadedFile::fake()->createWithContent('cv.pdf', 'PDF'),
+        'new_diplomas' => [
+            [
+                'title' => 'Licence',
+                'file' => UploadedFile::fake()->createWithContent('diplome.pdf', 'PDF'),
+            ],
+        ],
     ])->assertOk()->assertViewIs('candidate.expired');
 
     expect(Submission::count())->toBe(0);
 });
 
-it('adds a diploma via POST after a draft has been saved', function () {
-    // First, save a draft so the candidate has a submission
+it('adds a diploma through the main submission form after a complete submission has been saved', function () {
+    // First, save a complete submission so the candidate can add another diploma.
     $this->post(route('candidate.save', ['token' => $this->token->token]), [
         'position_id' => $this->position->id,
+        'current_structure' => 'Hôpital',
+        'current_service' => 'Service',
+        'cv' => UploadedFile::fake()->createWithContent('cv.pdf', 'PDF'),
+        'new_diplomas' => [
+            [
+                'title' => 'Licence',
+                'file' => UploadedFile::fake()->createWithContent('licence.pdf', 'PDF'),
+            ],
+        ],
     ])->assertRedirect();
 
-    $file = UploadedFile::fake()->createWithContent('d.pdf', 'PDF-DATA');
-
-    $this->post(route('candidate.diploma.add', ['token' => $this->token->token]), [
-        'title' => 'Master MIAGE',
-        'institution' => 'UCAD',
-        'year' => 2018,
-        'file' => $file,
+    $this->post(route('candidate.save', ['token' => $this->token->token]), [
+        'position_id' => $this->position->id,
+        'current_structure' => 'Hôpital',
+        'current_service' => 'Service',
+        'new_diplomas' => [
+            [
+                'title' => 'Master MIAGE',
+                'institution' => 'UCAD',
+                'year' => 2018,
+                'file' => UploadedFile::fake()->createWithContent('master.pdf', 'PDF-DATA'),
+            ],
+        ],
     ])->assertRedirect();
 
-    $diploma = Diploma::first();
+    $diploma = Diploma::query()->latest('id')->first();
     expect($diploma)->not->toBeNull();
     expect($diploma->title)->toBe('Master MIAGE');
     Storage::disk(config('recrutement.storage_disk'))->assertExists($diploma->file_path);
 });
 
-it('refuses to add a diploma before any submission exists', function () {
-    $file = UploadedFile::fake()->createWithContent('d.pdf', 'PDF-DATA');
-
-    $this->post(route('candidate.diploma.add', ['token' => $this->token->token]), [
-        'title' => 'Master MIAGE',
-        'file' => $file,
-    ])->assertSessionHasErrors('file');
-
-    expect(Diploma::count())->toBe(0);
-});
-
-it('removes a diploma via DELETE', function () {
+it('removes a diploma through the main submission form', function () {
     $submission = Submission::factory()->create([
         'agent_id' => $this->agent->id,
         'position_id' => $this->position->id,
@@ -228,16 +298,45 @@ it('removes a diploma via DELETE', function () {
     ]);
     Storage::disk(config('recrutement.storage_disk'))->put($diploma->file_path, 'data');
 
-    $this->delete(route('candidate.diploma.remove', [
+    $this->post(route('candidate.save', [
         'token' => $this->token->token,
-        'diploma' => $diploma->id,
-    ]))->assertRedirect();
+    ]), [
+        'position_id' => $this->position->id,
+        'current_structure' => 'Hôpital Principal',
+        'current_service' => 'Service',
+        'diplomas_to_delete' => [$diploma->id],
+        'new_diplomas' => [
+            [
+                'title' => 'Master MIAGE',
+                'file' => UploadedFile::fake()->createWithContent('master.pdf', 'PDF-DATA'),
+            ],
+        ],
+    ])->assertRedirect();
 
     expect(Diploma::find($diploma->id))->toBeNull();
     Storage::disk(config('recrutement.storage_disk'))->assertMissing($diploma->file_path);
+    expect($submission->fresh()->diplomas)->toHaveCount(1);
 });
 
-it('refuses to remove a diploma belonging to another token', function () {
+it('refuses to remove the last diploma without a replacement', function () {
+    $submission = Submission::factory()->create([
+        'agent_id' => $this->agent->id,
+        'position_id' => $this->position->id,
+        'invitation_token_id' => $this->token->id,
+    ]);
+    $diploma = Diploma::factory()->create(['submission_id' => $submission->id]);
+
+    $this->post(route('candidate.save', ['token' => $this->token->token]), [
+        'position_id' => $this->position->id,
+        'current_structure' => 'Hôpital Principal',
+        'current_service' => 'Service',
+        'diplomas_to_delete' => [$diploma->id],
+    ])->assertSessionHasErrors('new_diplomas');
+
+    expect(Diploma::find($diploma->id))->not->toBeNull();
+});
+
+it('refuses to remove a diploma belonging to another token through the main form', function () {
     $otherAgent = Agent::factory()->create();
     $otherCampaign = Campaign::factory()->create();
     $otherPosition = Position::factory()->create(['campaign_id' => $otherCampaign->id]);
@@ -249,10 +348,19 @@ it('refuses to remove a diploma belonging to another token', function () {
     ]);
     $otherDiploma = Diploma::factory()->create(['submission_id' => $otherSubmission->id]);
 
-    $this->delete(route('candidate.diploma.remove', [
-        'token' => $this->token->token,
-        'diploma' => $otherDiploma->id,
-    ]))->assertNotFound();
+    $this->post(route('candidate.save', ['token' => $this->token->token]), [
+        'position_id' => $this->position->id,
+        'current_structure' => 'Hôpital Principal',
+        'current_service' => 'Service',
+        'cv' => UploadedFile::fake()->createWithContent('cv.pdf', 'PDF'),
+        'diplomas_to_delete' => [$otherDiploma->id],
+        'new_diplomas' => [
+            [
+                'title' => 'Licence',
+                'file' => UploadedFile::fake()->createWithContent('licence.pdf', 'PDF'),
+            ],
+        ],
+    ])->assertSessionHasErrors('diplomas_to_delete');
 
     expect(Diploma::find($otherDiploma->id))->not->toBeNull();
 });

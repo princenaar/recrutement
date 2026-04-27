@@ -19,6 +19,4 @@ Route::middleware(['web', 'auth'])
 Route::prefix('candidature')->name('candidate.')->group(function () {
     Route::get('/{token}', [CandidatePortalController::class, 'show'])->name('portal');
     Route::post('/{token}', [CandidatePortalController::class, 'save'])->name('save');
-    Route::post('/{token}/diploma', [CandidatePortalController::class, 'addDiploma'])->name('diploma.add');
-    Route::delete('/{token}/diploma/{diploma}', [CandidatePortalController::class, 'removeDiploma'])->name('diploma.remove');
 });

@@ -17,11 +17,11 @@ return new class extends Migration
             $table->foreignId('agent_id')->constrained()->cascadeOnDelete();
             $table->foreignId('position_id')->constrained()->cascadeOnDelete();
 
-            $table->string('current_structure')->nullable();
-            $table->string('current_service')->nullable();
+            $table->string('current_structure');
+            $table->string('current_service');
             $table->date('service_entry_date')->nullable();
             $table->text('motivation_note')->nullable();
-            $table->string('cv_path')->nullable();
+            $table->string('cv_path');
 
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('last_updated_at')->nullable();

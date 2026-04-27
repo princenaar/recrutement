@@ -40,6 +40,21 @@ class SubmissionService
             $this->assertPositionIsOpenForCampaign((int) $positionId, $token);
         }
 
+        $currentStructure = $data['current_structure'] ?? $existing?->current_structure;
+        $currentService = $data['current_service'] ?? $existing?->current_service;
+
+        if (! is_string($currentStructure) || trim($currentStructure) === '') {
+            throw new RuntimeException('La structure actuelle est obligatoire.');
+        }
+
+        if (! is_string($currentService) || trim($currentService) === '') {
+            throw new RuntimeException('Le service actuel est obligatoire.');
+        }
+
+        if ($cv === null && $existing?->cv_path === null) {
+            throw new RuntimeException('Le CV est obligatoire.');
+        }
+
         $submission = $existing ?? Submission::firstOrNew([
             'invitation_token_id' => $token->id,
             'agent_id' => $token->agent_id,
@@ -58,13 +73,11 @@ class SubmissionService
 
         if ($cv !== null) {
             $this->replaceCv($submission, $token, $cv);
+        }
 
-            if ($submission->submitted_at === null) {
-                $submission->submitted_at = now();
-                $submission->status = SubmissionStatus::Submitted;
-            }
-        } elseif (! $submission->exists) {
-            $submission->status = SubmissionStatus::Draft;
+        if ($submission->submitted_at === null) {
+            $submission->submitted_at = now();
+            $submission->status = SubmissionStatus::Submitted;
         }
 
         $submission->last_updated_at = now();
