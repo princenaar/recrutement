@@ -9,9 +9,11 @@ use App\Models\Agent;
 use App\Models\Campaign;
 use App\Models\InvitationToken;
 use App\Notifications\InvitationNotification;
+use App\Support\InvitationBatchResult;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
+use Throwable;
 
 class InvitationService
 {
@@ -66,12 +68,7 @@ class InvitationService
         $token->loadMissing(['agent', 'campaign']);
 
         if ($token->agent->email !== null) {
-            Notification::send($token->agent, new InvitationNotification($token));
-
-            $token->update([
-                'notification_channel' => InvitationChannel::Email,
-                'notification_sent_at' => now(),
-            ]);
+            $this->sendEmailInvitation($token);
 
             return null;
         }
@@ -84,6 +81,67 @@ class InvitationService
         ]);
 
         return $message;
+    }
+
+    public function sendEmailInvitation(InvitationToken $token): void
+    {
+        $token->loadMissing(['agent', 'campaign']);
+
+        Notification::send($token->agent, new InvitationNotification($token));
+
+        $token->update([
+            'notification_channel' => InvitationChannel::Email,
+            'notification_sent_at' => now(),
+        ]);
+    }
+
+    /**
+     * @param  iterable<Agent>  $agents
+     */
+    public function sendEmailBatch(iterable $agents, Campaign $campaign): InvitationBatchResult
+    {
+        $sent = 0;
+        $skippedNoEmail = 0;
+        $skippedActiveInvitation = 0;
+        $failed = 0;
+
+        foreach ($agents as $agent) {
+            if (blank($agent->email)) {
+                $skippedNoEmail++;
+
+                continue;
+            }
+
+            $hasActiveInvitation = InvitationToken::active()
+                ->where('agent_id', $agent->id)
+                ->where('campaign_id', $campaign->id)
+                ->exists();
+
+            if ($hasActiveInvitation) {
+                $skippedActiveInvitation++;
+
+                continue;
+            }
+
+            try {
+                $token = $this->createToken($agent, $campaign);
+                $this->sendEmailInvitation($token);
+                $sent++;
+            } catch (ActiveInvitationExistsException) {
+                $skippedActiveInvitation++;
+            } catch (Throwable $exception) {
+                report($exception);
+
+                $failed++;
+            }
+        }
+
+        return new InvitationBatchResult(
+            sent: $sent,
+            skippedNoEmail: $skippedNoEmail,
+            skippedActiveInvitation: $skippedActiveInvitation,
+            failed: $failed,
+        );
     }
 
     public function buildManualMessage(InvitationToken $token): string

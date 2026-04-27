@@ -4,14 +4,12 @@ namespace App\Filament\Resources\InvitationTokens\Tables;
 
 use App\Enums\InvitationChannel;
 use App\Models\InvitationToken;
-use App\Notifications\InvitationNotification;
 use App\Services\InvitationService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Support\Facades\Notification as NotificationFacade;
 use Livewire\Component as Livewire;
 
 class InvitationTokensTable
@@ -93,13 +91,8 @@ class InvitationTokensTable
                     ->requiresConfirmation()
                     ->modalHeading('Renvoyer le mail d\'invitation ?')
                     ->modalSubmitActionLabel('Renvoyer')
-                    ->action(function (InvitationToken $record): void {
-                        $record->loadMissing(['agent', 'campaign']);
-                        NotificationFacade::send($record->agent, new InvitationNotification($record));
-                        $record->update([
-                            'notification_channel' => InvitationChannel::Email,
-                            'notification_sent_at' => now(),
-                        ]);
+                    ->action(function (InvitationToken $record, InvitationService $service): void {
+                        $service->sendEmailInvitation($record);
 
                         Notification::make()->title('Mail renvoyé')->success()->send();
                     }),

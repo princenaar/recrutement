@@ -126,3 +126,48 @@ it('returns a manual message and sends no notification when agent has no email',
     expect($token->notification_channel)->toBe(InvitationChannel::Manual);
     expect($token->notification_sent_at)->not->toBeNull();
 });
+
+it('sends email invitations in batch only to eligible agents', function () {
+    Notification::fake();
+
+    $campaign = Campaign::factory()->create();
+    $eligibleAgent = Agent::factory()->create(['email' => 'eligible@example.com']);
+    $secondEligibleAgent = Agent::factory()->create(['email' => 'second@example.com']);
+    $agentWithoutEmail = Agent::factory()->create(['email' => null]);
+    $alreadyInvitedAgent = Agent::factory()->create(['email' => 'already@example.com']);
+    $existingToken = $this->service->createToken($alreadyInvitedAgent, $campaign);
+
+    $result = $this->service->sendEmailBatch([
+        $eligibleAgent,
+        $secondEligibleAgent,
+        $agentWithoutEmail,
+        $alreadyInvitedAgent,
+    ], $campaign);
+
+    expect($result->sent)->toBe(2);
+    expect($result->skippedNoEmail)->toBe(1);
+    expect($result->skippedActiveInvitation)->toBe(1);
+    expect($result->failed)->toBe(0);
+    expect($result->total())->toBe(4);
+
+    Notification::assertSentTo($eligibleAgent, InvitationNotification::class);
+    Notification::assertSentTo($secondEligibleAgent, InvitationNotification::class);
+    Notification::assertNotSentTo($agentWithoutEmail, InvitationNotification::class);
+    Notification::assertNotSentTo($alreadyInvitedAgent, InvitationNotification::class);
+
+    $sentTokens = InvitationToken::query()
+        ->where('campaign_id', $campaign->id)
+        ->whereIn('agent_id', [$eligibleAgent->id, $secondEligibleAgent->id])
+        ->get();
+
+    expect($sentTokens)->toHaveCount(2);
+    expect($sentTokens->pluck('notification_channel')->all())->each->toBe(InvitationChannel::Email);
+    expect($sentTokens->pluck('notification_sent_at')->all())->each->not->toBeNull();
+
+    $existingToken->refresh();
+    expect($existingToken->revoked_at)->toBeNull();
+    expect(InvitationToken::query()
+        ->where('campaign_id', $campaign->id)
+        ->where('agent_id', $alreadyInvitedAgent->id)
+        ->count())->toBe(1);
+});
