@@ -25,6 +25,7 @@ beforeEach(function () {
     $this->position = Position::factory()->create([
         'campaign_id' => $this->campaign->id,
         'title' => 'Ingénieur DevOps',
+        'required_profile' => 'Au moins cinq ans d\'expérience en administration systèmes.',
         'status' => PositionStatus::Open,
     ]);
     $this->token = app(InvitationService::class)->createToken($this->agent, $this->campaign);
@@ -62,7 +63,8 @@ it('renders the portal with agent data and open positions for a valid token', fu
         ->assertSee('Awa')
         ->assertSee('DIOP')
         ->assertSee('Recrutement DSI 2026')
-        ->assertSee('Ingénieur DevOps');
+        ->assertSee('Ingénieur DevOps')
+        ->assertSee('Au moins cinq ans d&#039;expérience en administration systèmes.', false);
 });
 
 it('saves the editable fields, position choice and CV via POST', function () {

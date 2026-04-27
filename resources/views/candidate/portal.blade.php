@@ -14,6 +14,7 @@
 
     $isLocked = $submission?->submitted_at !== null;
     $selectedPositionId = old('position_id', $submission?->position_id);
+    $selectedPosition = $positions->firstWhere('id', (int) $selectedPositionId);
 @endphp
 
 @section('content')
@@ -109,11 +110,22 @@
                     >
                         <option value="">— Sélectionnez un poste —</option>
                         @foreach ($positions as $option)
-                            <option value="{{ $option->id }}" @selected($selectedPositionId == $option->id)>
+                            <option
+                                value="{{ $option->id }}"
+                                data-required-profile="{{ $option->required_profile }}"
+                                @selected($selectedPositionId == $option->id)
+                            >
                                 {{ $option->title }}
                             </option>
                         @endforeach
                     </select>
+                    <div
+                        id="position-required-profile"
+                        class="{{ $selectedPosition?->required_profile ? '' : 'hidden ' }}mt-3 rounded-md border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-gray-700"
+                    >
+                        <p class="font-medium text-emerald-900">Profil requis</p>
+                        <p id="position-required-profile-text" class="mt-1 whitespace-pre-line">{{ $selectedPosition?->required_profile }}</p>
+                    </div>
                     @if ($isLocked)
                         <input type="hidden" name="position_id" value="{{ $submission->position_id }}">
                     @endif
@@ -263,4 +275,27 @@
             Enregistrer mon dossier
         </button>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const positionSelect = document.querySelector('select[name="position_id"]');
+            const profilePanel = document.getElementById('position-required-profile');
+            const profileText = document.getElementById('position-required-profile-text');
+
+            if (! positionSelect || ! profilePanel || ! profileText) {
+                return;
+            }
+
+            const refreshRequiredProfile = () => {
+                const selectedOption = positionSelect.selectedOptions[0];
+                const requiredProfile = selectedOption?.dataset.requiredProfile?.trim() ?? '';
+
+                profileText.textContent = requiredProfile;
+                profilePanel.classList.toggle('hidden', requiredProfile === '');
+            };
+
+            positionSelect.addEventListener('change', refreshRequiredProfile);
+            refreshRequiredProfile();
+        });
+    </script>
 @endsection
