@@ -100,7 +100,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <label class="block sm:col-span-2">
                     <span class="text-sm font-medium text-gray-700">
-                        Poste choisi
+                        Poste choisi <span class="text-red-600">*</span>
                         @if ($isLocked)
                             <span class="ml-2 text-xs text-gray-500">(verrouillé après soumission)</span>
                         @endif
@@ -108,6 +108,7 @@
                     <select
                         name="position_id"
                         @if ($isLocked) disabled @endif
+                        @unless ($isLocked) required @endunless
                         class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none disabled:bg-gray-100"
                     >
                         <option value="">— Sélectionnez un poste —</option>
@@ -135,20 +136,24 @@
 
                 <label class="block">
                     <span class="text-sm font-medium text-gray-700">Structure actuelle</span>
+                    <span class="text-red-600">*</span>
                     <input
                         type="text"
                         name="current_structure"
                         value="{{ old('current_structure', $submission?->current_structure ?? $agent->structure) }}"
+                        required
                         class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                     >
                 </label>
 
                 <label class="block">
                     <span class="text-sm font-medium text-gray-700">Service actuel</span>
+                    <span class="text-red-600">*</span>
                     <input
                         type="text"
                         name="current_service"
                         value="{{ old('current_service', $submission?->current_service ?? $agent->service) }}"
+                        required
                         class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
                     >
                 </label>
@@ -190,6 +195,9 @@
 
             <label class="block">
                 <span class="text-sm font-medium text-gray-700">Fichier PDF (max {{ $maxMb }} Mo)</span>
+                @if (! $submission?->cv_path)
+                    <span class="text-red-600">*</span>
+                @endif
                 <input
                     type="file"
                     name="cv"
@@ -240,6 +248,7 @@
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <label class="block">
                                     <span class="text-sm font-medium text-gray-700">Intitulé du diplôme</span>
+                                    <span class="text-red-600">*</span>
                                     <input
                                         type="text"
                                         name="new_diplomas[{{ $index }}][title]"
@@ -270,6 +279,7 @@
                                 </label>
                                 <label class="block">
                                     <span class="text-sm font-medium text-gray-700">Fichier PDF (max {{ $maxMb }} Mo)</span>
+                                    <span class="text-red-600">*</span>
                                     <input
                                         type="file"
                                         name="new_diplomas[{{ $index }}][file]"
@@ -347,6 +357,7 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <label class="block">
                             <span class="text-sm font-medium text-gray-700">Intitulé du diplôme</span>
+                            <span class="text-red-600">*</span>
                             <input type="text" name="new_diplomas[${diplomaIndex}][title]" required class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm">
                         </label>
                         <label class="block">
@@ -359,6 +370,7 @@
                         </label>
                         <label class="block">
                             <span class="text-sm font-medium text-gray-700">Fichier PDF (max {{ $maxMb }} Mo)</span>
+                            <span class="text-red-600">*</span>
                             <input type="file" name="new_diplomas[${diplomaIndex}][file]" accept="application/pdf" required class="mt-2 block w-full cursor-pointer rounded-md border border-dashed border-gray-300 bg-white text-sm text-gray-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-gray-800 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-white hover:border-emerald-400 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
                         </label>
                     </div>
