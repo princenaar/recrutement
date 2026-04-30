@@ -16,7 +16,7 @@ class AgentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static ?string $navigationLabel = 'Agents iHRIS';
+    protected static ?string $navigationLabel = 'Candidats';
 
     protected static string|\UnitEnum|null $navigationGroup = 'Recrutement';
 
@@ -26,12 +26,12 @@ class AgentResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return 'agent';
+        return 'candidat';
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'agents';
+        return 'candidats';
     }
 
     public static function table(Table $table): Table

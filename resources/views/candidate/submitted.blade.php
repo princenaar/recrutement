@@ -7,7 +7,7 @@
         <h2 class="text-lg font-semibold text-green-900">Votre dossier a bien été enregistré</h2>
         <p class="mt-2 text-sm text-green-900">
             Vous pouvez modifier votre dossier (informations actualisables, CV, diplômes) jusqu'à
-            l'expiration de votre lien personnel. La DRH examinera ensuite votre candidature.
+            l'expiration de votre lien personnel. L'équipe de recrutement examinera ensuite votre candidature.
         </p>
 
         @isset($token)

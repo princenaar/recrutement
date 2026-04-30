@@ -12,7 +12,6 @@ use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
-use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
@@ -30,7 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            ->brandName('DRH MSHP')
+            ->brandName('Recrutement MSHP')
             ->brandLogo(fn (): string => asset('images/logo_mshp.png'))
             ->brandLogoHeight('2.75rem')
             ->favicon(asset('images/logo_mshp.png'))

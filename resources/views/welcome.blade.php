@@ -45,13 +45,13 @@
         <div class="relative mx-auto grid min-h-[calc(100svh-10rem)] max-w-6xl items-center gap-12 px-6 py-16 lg:grid-cols-[1.05fr_.95fr] lg:py-20">
             <div class="max-w-2xl home-rise">
                 <p class="text-sm font-semibold uppercase tracking-[.24em] text-emerald-200">
-                    Direction des Ressources Humaines
+                    Plateforme de recrutement
                 </p>
                 <h1 class="mt-5 text-4xl font-black leading-[1.02] text-white sm:text-6xl lg:text-7xl">
-                    Recrutement interne MSHP
+                    Recrutement MSHP
                 </h1>
                 <p class="mt-6 max-w-xl text-base leading-8 text-slate-200 sm:text-lg">
-                    Un portail sécurisé pour déposer les candidatures des agents du Ministère de la Santé et de l'Hygiène Publique.
+                    Un portail sécurisé pour déposer les candidatures aux campagnes du Ministère de la Santé et de l'Hygiène Publique.
                 </p>
 
                 <div class="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -65,7 +65,7 @@
                         href="{{ url('/admin') }}"
                         class="inline-flex items-center justify-center rounded-md border border-white/20 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:border-emerald-200 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-slate-950"
                     >
-                        Back-office DRH
+                        Accès administrateur
                     </a>
                 </div>
             </div>
@@ -92,7 +92,7 @@
                         <div class="home-scan absolute left-0 right-0 top-0 h-16 bg-gradient-to-b from-emerald-200/0 via-emerald-200/35 to-emerald-200/0"></div>
                         <div class="space-y-4">
                             <div>
-                                <p class="text-xs uppercase tracking-[.22em] text-slate-400">Identité iHRIS</p>
+                                <p class="text-xs uppercase tracking-[.22em] text-slate-400">Identité candidat</p>
                                 <div class="mt-3 grid grid-cols-2 gap-3">
                                     <span class="h-3 rounded-full bg-white/80"></span>
                                     <span class="h-3 rounded-full bg-white/50"></span>
@@ -144,7 +144,7 @@
                     <div>
                         <h3 class="text-lg font-bold text-slate-950">Recevoir le lien personnel</h3>
                         <p class="mt-2 text-sm leading-7 text-slate-600">
-                            La DRH transmet un lien unique par e-mail, SMS ou WhatsApp selon les informations disponibles.
+                            L'équipe de recrutement transmet un lien unique par e-mail, SMS ou WhatsApp selon les informations disponibles.
                         </p>
                     </div>
                 </article>
@@ -154,7 +154,7 @@
                     <div>
                         <h3 class="text-lg font-bold text-slate-950">Compléter le dossier</h3>
                         <p class="mt-2 text-sm leading-7 text-slate-600">
-                            Les données iHRIS sont affichées en lecture seule ; l'agent ajoute ses informations actualisées, son CV et ses diplômes.
+                            Les informations de référence sont affichées en lecture seule ; le candidat ajoute ses informations actualisées, son CV et ses diplômes.
                         </p>
                     </div>
                 </article>
@@ -177,13 +177,13 @@
             <div class="lg:col-span-1">
                 <p class="text-sm font-semibold uppercase tracking-[.22em] text-emerald-700">Garanties</p>
                 <h2 class="mt-3 text-3xl font-black tracking-tight text-slate-950">
-                    Conçu pour un recrutement interne maîtrisé.
+                    Conçu pour un recrutement maîtrisé.
                 </h2>
             </div>
 
             <div class="grid gap-6 sm:grid-cols-2 lg:col-span-2">
                 <div class="border-l-2 border-emerald-600 pl-5">
-                    <h3 class="font-bold text-slate-950">Données iHRIS protégées</h3>
+                    <h3 class="font-bold text-slate-950">Informations de référence protégées</h3>
                     <p class="mt-2 text-sm leading-7 text-slate-600">
                         Les informations importées servent de référence et ne sont pas modifiables depuis le portail.
                     </p>
@@ -216,7 +216,7 @@
                 <p class="text-sm font-semibold uppercase tracking-[.22em] text-emerald-700">Besoin d'aide ?</p>
                 <h2 class="mt-2 text-2xl font-black text-slate-950">Vous n'avez pas reçu votre lien personnel ?</h2>
                 <p class="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
-                    Contactez la Direction des Ressources Humaines pour vérifier votre éligibilité aux campagnes en cours.
+                    Contactez l'équipe de recrutement pour vérifier votre éligibilité aux campagnes en cours.
                 </p>
             </div>
             <a

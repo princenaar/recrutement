@@ -9,7 +9,7 @@ class ListAgents extends ListRecords
 {
     protected static string $resource = AgentResource::class;
 
-    protected static ?string $title = 'Agents iHRIS';
+    protected static ?string $title = 'Candidats';
 
     protected function getHeaderActions(): array
     {

@@ -24,13 +24,13 @@ class SendBatchInvitationsAction extends BulkAction
         $this
             ->label('Inviter par email')
             ->icon('heroicon-o-envelope')
-            ->modalHeading('Inviter les agents sélectionnés par email')
-            ->modalDescription('Seuls les agents sélectionnés avec une adresse email seront invités. Les invitations actives existantes seront conservées.')
+            ->modalHeading('Inviter les candidats sélectionnés par email')
+            ->modalDescription('Seuls les candidats sélectionnés avec une adresse email seront invités. Les invitations actives existantes seront conservées.')
             ->modalSubmitActionLabel('Envoyer les invitations')
             ->schema([
                 Select::make('campaign_id')
                     ->label('Campagne')
-                    ->helperText('L\'agent choisira lui-même le poste parmi ceux de la campagne.')
+                    ->helperText('Le candidat choisira lui-même le poste parmi ceux de la campagne.')
                     ->options(fn () => Campaign::query()
                         ->where('status', CampaignStatus::Active->value)
                         ->orderByDesc('id')

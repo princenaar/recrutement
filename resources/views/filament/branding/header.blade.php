@@ -9,7 +9,7 @@
 
             <div>
                 <p class="mshp-admin-header__title">
-                    Direction des Ressources Humaines
+                    Plateforme de recrutement
                 </p>
                 <p class="mshp-admin-header__subtitle">
                     Ministère de la Santé et de l'Hygiène Publique
@@ -19,7 +19,7 @@
 
         <div class="mshp-admin-header__identity">
             <div class="mshp-admin-header__tagline">
-                Back-office du recrutement interne
+                Back-office du recrutement
             </div>
 
             <img

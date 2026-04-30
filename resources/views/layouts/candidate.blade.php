@@ -26,10 +26,10 @@
                     Ministère de la Santé et de l'Hygiène Publique
                 </p>
                 <p class="text-xs uppercase tracking-wide text-gray-600">
-                    Direction des Ressources Humaines
+                    Plateforme de recrutement
                 </p>
                 <p class="mt-2 text-xs text-gray-500">
-                    Portail de recrutement interne
+                    Portail de recrutement
                 </p>
             </div>
 
@@ -65,7 +65,7 @@
     <footer class="border-t border-gray-200 bg-white">
         <div class="max-w-5xl mx-auto px-6 py-6 text-xs text-gray-600 flex flex-col sm:flex-row items-center justify-between gap-2">
             <p>
-                © {{ now()->year }} DRH — Ministère de la Santé et de l'Hygiène Publique. Vos données sont confidentielles et utilisées uniquement dans le cadre du recrutement interne.
+                © {{ now()->year }} Ministère de la Santé et de l'Hygiène Publique. Vos données sont confidentielles et utilisées uniquement dans le cadre du recrutement.
             </p>
             <p class="text-gray-400">République du Sénégal</p>
         </div>

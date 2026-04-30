@@ -32,14 +32,14 @@
     </section>
 
     <section class="rounded-lg border border-gray-200 bg-white p-6 mb-6">
-        <h3 class="text-base font-semibold mb-4 text-gray-900">A. Informations issues d'iHRIS (non modifiables)</h3>
+        <h3 class="text-base font-semibold mb-4 text-gray-900">A. Informations candidat non modifiables</h3>
         <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
                 <dt class="text-gray-500">Matricule</dt>
                 <dd class="font-medium">{{ $agent->matricule }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Nom de l'agent</dt>
+                <dt class="text-gray-500">Nom du candidat</dt>
                 <dd class="font-medium">{{ trim($agent->first_name.' '.$agent->last_name) }}</dd>
             </div>
             <div>
@@ -71,7 +71,7 @@
                 <dd class="font-medium">{{ $agent->entry_date?->format('d/m/Y') ?? '—' }}</dd>
             </div>
             <div>
-                <dt class="text-gray-500">Structure (iHRIS)</dt>
+                <dt class="text-gray-500">Structure de référence</dt>
                 <dd class="font-medium">{{ $agent->structure ?? '—' }}</dd>
             </div>
             <div>

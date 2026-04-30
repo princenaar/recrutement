@@ -25,12 +25,12 @@ class SendInvitationAction extends Action
         $this
             ->label('Inviter')
             ->icon('heroicon-o-paper-airplane')
-            ->modalHeading('Inviter cet agent à candidater')
+            ->modalHeading('Inviter ce candidat à candidater')
             ->modalSubmitActionLabel('Envoyer l\'invitation')
             ->schema([
                 Select::make('campaign_id')
                     ->label('Campagne')
-                    ->helperText('L\'agent choisira lui-même le poste parmi ceux de la campagne.')
+                    ->helperText('Le candidat choisira lui-même le poste parmi ceux de la campagne.')
                     ->options(fn () => Campaign::query()
                         ->where('status', CampaignStatus::Active->value)
                         ->orderByDesc('id')

@@ -22,7 +22,7 @@ class InvitationTokensTable
                     ->label('Matricule')
                     ->searchable(),
                 TextColumn::make('agent.last_name')
-                    ->label('Agent')
+                    ->label('Candidat')
                     ->formatStateUsing(fn ($record) => trim($record->agent->first_name.' '.$record->agent->last_name))
                     ->searchable(['first_name', 'last_name']),
                 TextColumn::make('campaign.title')

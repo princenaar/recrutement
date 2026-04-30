@@ -161,13 +161,13 @@ class InvitationService
         return <<<TEXT
         Bonjour {$token->agent->first_name} {$token->agent->last_name},
 
-        Vous êtes invité(e) à candidater dans le cadre de la campagne « {$token->campaign->title} » du Ministère de la Santé et de l'Hygiène Publique.{$positionsBlock}
+        Vous êtes invité(e) à candidater dans le cadre de la campagne publique « {$token->campaign->title} » du Ministère de la Santé et de l'Hygiène Publique.{$positionsBlock}
 
         Accédez à votre dossier (lien personnel) : {$url}
 
         Ce lien est valide jusqu'au {$token->expires_at->format('d/m/Y à H:i')}.
 
-        — DRH / MSHP
+        — Équipe de recrutement MSHP
         TEXT;
     }
 }

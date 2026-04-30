@@ -28,7 +28,7 @@ class RejectAction extends Action
             ->visible(fn (Submission $record) => $record->status !== SubmissionStatus::Rejected)
             ->schema([
                 Textarea::make('rejection_note')
-                    ->label('Note interne (non visible par l\'agent)')
+                    ->label('Note interne (non visible par le candidat)')
                     ->rows(4),
             ])
             ->action(function (array $data, Submission $record): void {
