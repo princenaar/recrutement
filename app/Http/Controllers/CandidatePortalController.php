@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\CampaignFormType;
 use App\Enums\PositionStatus;
 use App\Exceptions\InvalidSubmissionFileException;
 use App\Models\InvitationToken;
 use App\Models\Submission;
+use App\Services\CriteriaSubmissionService;
 use App\Services\SubmissionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +20,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CandidatePortalController extends Controller
 {
-    public function __construct(private readonly SubmissionService $submissions) {}
+    public function __construct(
+        private readonly SubmissionService $submissions,
+        private readonly CriteriaSubmissionService $criteriaSubmissions,
+    ) {}
 
     public function show(string $token): Response|ViewContract
     {
@@ -33,6 +38,18 @@ class CandidatePortalController extends Controller
         $positions = $invitation->campaign->positions
             ->where('status', PositionStatus::Open)
             ->values();
+
+        if ($invitation->campaign->form_type === CampaignFormType::CriteriaQuestionnaire) {
+            return view('candidate.criteria-portal', [
+                'token' => $invitation,
+                'agent' => $invitation->agent,
+                'campaign' => $invitation->campaign,
+                'positions' => $positions,
+                'submission' => $invitation->submission,
+                'regions' => CriteriaSubmissionService::REGIONS,
+                'regionPoints' => CriteriaSubmissionService::REGION_POINTS,
+            ]);
+        }
 
         return view('candidate.portal', [
             'token' => $invitation,
@@ -49,6 +66,12 @@ class CandidatePortalController extends Controller
 
         if (! $invitation instanceof InvitationToken) {
             return $invitation;
+        }
+
+        $invitation->loadMissing('campaign');
+
+        if ($invitation->campaign->form_type === CampaignFormType::CriteriaQuestionnaire) {
+            return $this->saveCriteriaQuestionnaire($request, $invitation);
         }
 
         $maxKb = (int) config('recrutement.upload_max_size_kb');
@@ -194,6 +217,51 @@ class CandidatePortalController extends Controller
         return redirect()
             ->route('candidate.portal', ['token' => $invitation->token])
             ->with('status', 'Votre dossier a été enregistré.');
+    }
+
+    private function saveCriteriaQuestionnaire(Request $request, InvitationToken $invitation): RedirectResponse
+    {
+        $existing = Submission::query()
+            ->where('invitation_token_id', $invitation->id)
+            ->first();
+
+        $positionRule = $existing?->submitted_at !== null
+            ? ['required']
+            : [
+                'required',
+                Rule::exists('positions', 'id')->where(
+                    fn ($q) => $q->where('campaign_id', $invitation->campaign_id)
+                        ->where('status', PositionStatus::Open->value)
+                ),
+            ];
+
+        $validator = Validator::make($request->all(), [
+            'position_id' => $positionRule,
+            'currently_active' => ['required', Rule::in(['yes', 'no'])],
+            'activity_location' => ['nullable', 'required_if:currently_active,yes', 'prohibited_if:currently_active,no', 'string', 'max:255'],
+            'degree_level' => ['required', Rule::in(['master_data_health', 'licence_data_health', 'other_relevant', 'not_relevant'])],
+            'experience_years' => ['required', 'integer', 'min:0', 'max:50'],
+            'knows_snis' => ['required', Rule::in(['yes', 'no'])],
+            'dhis2_level' => ['required', Rule::in(['advanced', 'basic', 'none'])],
+            'computer_skills' => ['required', Rule::in(['yes', 'no'])],
+            'region_choices' => ['required', 'array', 'min:1', 'max:3'],
+            'region_choices.*' => ['required', Rule::in(CriteriaSubmissionService::REGIONS)],
+            'motivation_note' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $validated = $validator->validate();
+
+        if ($existing?->submitted_at !== null) {
+            $validated['position_id'] = $existing->position_id;
+        }
+
+        DB::transaction(function () use ($invitation, $validated): void {
+            $this->criteriaSubmissions->save($invitation, $validated);
+        });
+
+        return redirect()
+            ->route('candidate.portal', ['token' => $invitation->token])
+            ->with('status', 'Votre candidature a été enregistrée.');
     }
 
     private function resolveToken(string $token): InvitationToken|ViewContract

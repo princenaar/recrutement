@@ -24,6 +24,11 @@ class Submission extends Model
         'service_entry_date',
         'motivation_note',
         'cv_path',
+        'responses',
+        'region_choices',
+        'score_breakdown',
+        'raw_score',
+        'normalized_score',
         'submitted_at',
         'last_updated_at',
         'status',
@@ -40,6 +45,11 @@ class Submission extends Model
             'shortlisted_at' => 'datetime',
             'service_entry_date' => 'date',
             'status' => SubmissionStatus::class,
+            'responses' => 'array',
+            'region_choices' => 'array',
+            'score_breakdown' => 'array',
+            'raw_score' => 'integer',
+            'normalized_score' => 'decimal:2',
         ];
     }
 

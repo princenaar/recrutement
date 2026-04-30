@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\CampaignFormType;
 use App\Enums\PositionStatus;
 use App\Models\Agent;
 use App\Models\Campaign;
@@ -363,4 +364,98 @@ it('refuses to remove a diploma belonging to another token through the main form
     ])->assertSessionHasErrors('diplomas_to_delete');
 
     expect(Diploma::find($otherDiploma->id))->not->toBeNull();
+});
+
+it('renders the criteria questionnaire without document upload fields', function () {
+    $this->campaign->update(['form_type' => CampaignFormType::CriteriaQuestionnaire]);
+
+    $this->get(route('candidate.portal', ['token' => $this->token->token]))
+        ->assertOk()
+        ->assertViewIs('candidate.criteria-portal')
+        ->assertSee('Êtes-vous actuellement en activité ?', false)
+        ->assertSee('Kédougou')
+        ->assertDontSee('Curriculum vitae');
+});
+
+it('saves a criteria questionnaire when the candidate is not active', function () {
+    $this->campaign->update(['form_type' => CampaignFormType::CriteriaQuestionnaire]);
+
+    $this->post(route('candidate.save', ['token' => $this->token->token]), [
+        'position_id' => $this->position->id,
+        'currently_active' => 'no',
+        'degree_level' => 'licence_data_health',
+        'experience_years' => 2,
+        'knows_snis' => 'yes',
+        'dhis2_level' => 'basic',
+        'computer_skills' => 'yes',
+        'region_choices' => ['Dakar', 'Thiès'],
+        'motivation_note' => 'Disponible pour le terrain.',
+    ])->assertRedirect();
+
+    $submission = Submission::where('agent_id', $this->agent->id)->first();
+    expect($submission)->not->toBeNull();
+    expect($submission->cv_path)->toBeNull();
+    expect($submission->responses['currently_active'])->toBe('no');
+    expect($submission->responses['activity_location'])->toBeNull();
+    expect($submission->region_choices)->toBe(['Dakar', 'Thiès']);
+    expect($submission->score_breakdown['terrain_motivation'])->toBe(1);
+    expect($submission->raw_score)->toBe(43);
+    expect((float) $submission->normalized_score)->toBe(66.15);
+});
+
+it('saves a criteria questionnaire when the candidate is active and gives a location', function () {
+    $this->campaign->update(['form_type' => CampaignFormType::CriteriaQuestionnaire]);
+
+    $this->post(route('candidate.save', ['token' => $this->token->token]), [
+        'position_id' => $this->position->id,
+        'currently_active' => 'yes',
+        'activity_location' => 'District sanitaire de Koumpentoum',
+        'degree_level' => 'master_data_health',
+        'experience_years' => 5,
+        'knows_snis' => 'yes',
+        'dhis2_level' => 'advanced',
+        'computer_skills' => 'yes',
+        'region_choices' => ['Dakar', 'Kédougou'],
+    ])->assertRedirect();
+
+    $submission = Submission::where('agent_id', $this->agent->id)->first();
+    expect($submission->responses['currently_active'])->toBe('yes');
+    expect($submission->responses['activity_location'])->toBe('District sanitaire de Koumpentoum');
+    expect($submission->current_structure)->toBe('District sanitaire de Koumpentoum');
+    expect($submission->raw_score)->toBe(65);
+    expect((float) $submission->normalized_score)->toBe(100.0);
+});
+
+it('rejects a criteria questionnaire when active location is missing', function () {
+    $this->campaign->update(['form_type' => CampaignFormType::CriteriaQuestionnaire]);
+
+    $this->post(route('candidate.save', ['token' => $this->token->token]), [
+        'position_id' => $this->position->id,
+        'currently_active' => 'yes',
+        'degree_level' => 'master_data_health',
+        'experience_years' => 5,
+        'knows_snis' => 'yes',
+        'dhis2_level' => 'advanced',
+        'computer_skills' => 'yes',
+        'region_choices' => ['Kédougou'],
+    ])->assertSessionHasErrors('activity_location');
+
+    expect(Submission::count())->toBe(0);
+});
+
+it('rejects a criteria questionnaire with more than three regions', function () {
+    $this->campaign->update(['form_type' => CampaignFormType::CriteriaQuestionnaire]);
+
+    $this->post(route('candidate.save', ['token' => $this->token->token]), [
+        'position_id' => $this->position->id,
+        'currently_active' => 'no',
+        'degree_level' => 'master_data_health',
+        'experience_years' => 5,
+        'knows_snis' => 'yes',
+        'dhis2_level' => 'advanced',
+        'computer_skills' => 'yes',
+        'region_choices' => ['Dakar', 'Thiès', 'Kédougou', 'Matam'],
+    ])->assertSessionHasErrors('region_choices');
+
+    expect(Submission::count())->toBe(0);
 });

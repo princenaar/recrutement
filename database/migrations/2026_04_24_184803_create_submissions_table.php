@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('current_service');
             $table->date('service_entry_date')->nullable();
             $table->text('motivation_note')->nullable();
-            $table->string('cv_path');
+            $table->string('cv_path')->nullable();
 
             $table->timestamp('submitted_at')->nullable();
             $table->timestamp('last_updated_at')->nullable();

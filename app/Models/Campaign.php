@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\CampaignFormType;
 use App\Enums\CampaignStatus;
 use Database\Factories\CampaignFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,6 +18,7 @@ class Campaign extends Model
         'title',
         'description',
         'status',
+        'form_type',
         'starts_at',
         'ends_at',
     ];
@@ -25,6 +27,7 @@ class Campaign extends Model
     {
         return [
             'status' => CampaignStatus::class,
+            'form_type' => CampaignFormType::class,
             'starts_at' => 'date',
             'ends_at' => 'date',
         ];

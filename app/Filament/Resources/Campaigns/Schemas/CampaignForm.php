@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Campaigns\Schemas;
 
+use App\Enums\CampaignFormType;
 use App\Enums\CampaignStatus;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -23,6 +24,11 @@ class CampaignForm
                     ->label('Statut')
                     ->options(CampaignStatus::class)
                     ->default(CampaignStatus::Draft->value)
+                    ->required(),
+                Select::make('form_type')
+                    ->label('Type de formulaire')
+                    ->options(CampaignFormType::class)
+                    ->default(CampaignFormType::DocumentDossier->value)
                     ->required(),
                 DatePicker::make('starts_at')
                     ->label('Début'),

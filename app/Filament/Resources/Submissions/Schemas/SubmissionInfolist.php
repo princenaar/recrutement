@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Submissions\Schemas;
 
+use App\Enums\CampaignFormType;
 use Filament\Infolists\Components\IconEntry;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\RepeatableEntry\TableColumn;
@@ -15,7 +16,7 @@ class SubmissionInfolist
     {
         return $schema
             ->components([
-                Section::make('Candidat (iHRIS)')
+                Section::make('Candidat')
                     ->columns(2)
                     ->schema([
                         TextEntry::make('agent.matricule')->label('Matricule'),
@@ -25,11 +26,11 @@ class SubmissionInfolist
                         TextEntry::make('agent.email')->label('Email')->placeholder('—'),
                         TextEntry::make('agent.phone')->label('Téléphone')->placeholder('—'),
                         TextEntry::make('agent.category')->label('Catégorie')->badge(),
-                        TextEntry::make('agent.agent_status')->label('Statut agent')->badge(),
+                        TextEntry::make('agent.agent_status')->label('Statut candidat')->badge(),
                         TextEntry::make('agent.contract_type')->label('Type de contrat')->placeholder('—'),
                         TextEntry::make('agent.current_position')->label('Fonction actuelle')->placeholder('—'),
-                        TextEntry::make('agent.structure')->label('Structure (iHRIS)'),
-                        TextEntry::make('agent.service')->label('Service (iHRIS)')->placeholder('—'),
+                        TextEntry::make('agent.structure')->label('Structure de référence'),
+                        TextEntry::make('agent.service')->label('Service de référence')->placeholder('—'),
                         TextEntry::make('agent.region')->label('Région'),
                     ]),
 
@@ -64,7 +65,40 @@ class SubmissionInfolist
                             ->placeholder('—'),
                     ]),
 
+                Section::make('Questionnaire à critères')
+                    ->columns(2)
+                    ->visible(fn ($record) => $record->position?->campaign?->form_type === CampaignFormType::CriteriaQuestionnaire)
+                    ->schema([
+                        IconEntry::make('responses.currently_active')
+                            ->label('En activité')
+                            ->boolean()
+                            ->state(fn ($record) => ($record->responses['currently_active'] ?? null) === 'yes'),
+                        TextEntry::make('responses.activity_location')
+                            ->label('Lieu d’activité')
+                            ->placeholder('—'),
+                        TextEntry::make('region_choices')
+                            ->label('Régions choisies')
+                            ->formatStateUsing(fn ($state) => is_array($state) ? implode(', ', $state) : null)
+                            ->placeholder('—'),
+                        TextEntry::make('raw_score')
+                            ->label('Score brut')
+                            ->suffix('/65')
+                            ->placeholder('—'),
+                        TextEntry::make('normalized_score')
+                            ->label('Score normalisé')
+                            ->suffix('/100')
+                            ->placeholder('—'),
+                        TextEntry::make('score_breakdown')
+                            ->label('Détail des points')
+                            ->formatStateUsing(fn ($state) => collect($state ?? [])
+                                ->map(fn ($points, $criterion) => "{$criterion} : {$points} pt")
+                                ->implode("\n"))
+                            ->columnSpanFull()
+                            ->placeholder('—'),
+                    ]),
+
                 Section::make('Documents')
+                    ->visible(fn ($record) => $record->position?->campaign?->form_type !== CampaignFormType::CriteriaQuestionnaire)
                     ->columns(2)
                     ->schema([
                         IconEntry::make('cv_path')

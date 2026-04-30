@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Submissions\Tables;
 
 use App\Enums\SubmissionStatus;
+use App\Models\Agent;
 use App\Models\Campaign;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
@@ -20,6 +21,11 @@ class SubmissionsTable
                     ->label('Matricule')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('agent.import_name')
+                    ->label('Import')
+                    ->searchable()
+                    ->toggleable()
+                    ->placeholder('—'),
                 TextColumn::make('agent.last_name')
                     ->label('Candidat')
                     ->formatStateUsing(fn ($record) => $record->agent?->full_name)
@@ -49,6 +55,27 @@ class SubmissionsTable
                     ->label('Statut')
                     ->badge()
                     ->searchable(),
+                TextColumn::make('normalized_score')
+                    ->label('Score /100')
+                    ->numeric(decimalPlaces: 2)
+                    ->sortable()
+                    ->placeholder('—'),
+                TextColumn::make('raw_score')
+                    ->label('Score brut')
+                    ->suffix('/65')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->placeholder('—'),
+                TextColumn::make('region_choices')
+                    ->label('Régions choisies')
+                    ->formatStateUsing(fn ($state) => is_array($state) ? implode(', ', $state) : null)
+                    ->toggleable()
+                    ->placeholder('—'),
+                IconColumn::make('responses.currently_active')
+                    ->label('En activité')
+                    ->boolean()
+                    ->state(fn ($record) => ($record->responses['currently_active'] ?? null) === 'yes')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 IconColumn::make('cv_path')
                     ->label('CV')
                     ->boolean()
@@ -82,6 +109,17 @@ class SubmissionsTable
                         ->all())
                     ->query(fn ($query, array $data) => filled($data['value'] ?? null)
                         ? $query->whereHas('position', fn ($positionQuery) => $positionQuery->where('campaign_id', $data['value']))
+                        : $query),
+                SelectFilter::make('import_name')
+                    ->label('Import')
+                    ->options(fn () => Agent::query()
+                        ->whereNotNull('import_name')
+                        ->distinct()
+                        ->orderBy('import_name')
+                        ->pluck('import_name', 'import_name')
+                        ->all())
+                    ->query(fn ($query, array $data) => filled($data['value'] ?? null)
+                        ? $query->whereHas('agent', fn ($agentQuery) => $agentQuery->where('import_name', $data['value']))
                         : $query),
             ])
             ->recordActions([
