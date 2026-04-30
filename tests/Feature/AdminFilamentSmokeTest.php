@@ -20,6 +20,10 @@ it('renders the main admin recruitment pages for an authenticated user', functio
     ]);
 
     $this->actingAs($admin)
+        ->get(route('filament.admin.pages.dashboard'))
+        ->assertOk();
+
+    $this->actingAs($admin)
         ->get(route('filament.admin.resources.agents.index'))
         ->assertOk();
 
