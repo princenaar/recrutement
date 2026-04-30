@@ -22,6 +22,11 @@ class AgentsTable
                     ->label('Matricule')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('import_name')
+                    ->label('Import')
+                    ->searchable()
+                    ->toggleable()
+                    ->placeholder('—'),
                 TextColumn::make('first_name')
                     ->label('Prénom')
                     ->searchable(),
@@ -63,6 +68,14 @@ class AgentsTable
                         ->whereNotNull('structure')
                         ->distinct()
                         ->pluck('structure', 'structure')
+                        ->all()),
+                SelectFilter::make('import_name')
+                    ->label('Import')
+                    ->options(fn () => Agent::query()
+                        ->whereNotNull('import_name')
+                        ->distinct()
+                        ->orderBy('import_name')
+                        ->pluck('import_name', 'import_name')
                         ->all()),
                 SelectFilter::make('has_email')
                     ->label('Email')

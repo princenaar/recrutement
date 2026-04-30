@@ -19,6 +19,8 @@ class AgentFactory extends Factory
     {
         return [
             'matricule' => fake()->unique()->numerify('MAT######'),
+            'import_source' => 'ihris',
+            'import_name' => null,
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'gender' => fake()->randomElement(['M', 'F']),
@@ -39,6 +41,7 @@ class AgentFactory extends Factory
             'entry_date' => fake()->dateTimeBetween('-20 years', '-1 year')->format('Y-m-d'),
             'marital_status' => fake()->randomElement(['Célibataire', 'Marié(e)', 'Divorcé(e)', 'Veuf/Veuve']),
             'ihris_imported_at' => now(),
+            'source_payload' => null,
         ];
     }
 }

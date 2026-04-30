@@ -15,6 +15,8 @@ class Agent extends Model
 
     protected $fillable = [
         'matricule',
+        'import_source',
+        'import_name',
         'first_name',
         'last_name',
         'gender',
@@ -35,6 +37,7 @@ class Agent extends Model
         'entry_date',
         'marital_status',
         'ihris_imported_at',
+        'source_payload',
     ];
 
     protected function casts(): array
@@ -44,6 +47,7 @@ class Agent extends Model
             'position_start_date' => 'date',
             'entry_date' => 'date',
             'ihris_imported_at' => 'datetime',
+            'source_payload' => 'array',
         ];
     }
 
