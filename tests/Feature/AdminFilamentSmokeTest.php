@@ -131,6 +131,58 @@ it('filters imported candidates by submitted application presence', function () 
         ]);
 });
 
+it('filters candidates by active invitation presence', function () {
+    $admin = User::factory()->create();
+    $campaign = Campaign::factory()->create();
+
+    $withActiveInvitation = Agent::factory()->create(['matricule' => 'INV-ACTIVE']);
+    $withExpiredInvitation = Agent::factory()->create(['matricule' => 'INV-EXPIRED']);
+    $withRevokedInvitation = Agent::factory()->create(['matricule' => 'INV-REVOKED']);
+    $withoutInvitation = Agent::factory()->create(['matricule' => 'INV-NONE']);
+
+    InvitationToken::factory()->create([
+        'agent_id' => $withActiveInvitation->id,
+        'campaign_id' => $campaign->id,
+        'expires_at' => now()->addDay(),
+        'revoked_at' => null,
+    ]);
+    InvitationToken::factory()->create([
+        'agent_id' => $withExpiredInvitation->id,
+        'campaign_id' => $campaign->id,
+        'expires_at' => now()->subDay(),
+        'revoked_at' => null,
+    ]);
+    InvitationToken::factory()->create([
+        'agent_id' => $withRevokedInvitation->id,
+        'campaign_id' => $campaign->id,
+        'expires_at' => now()->addDay(),
+        'revoked_at' => now(),
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(ListAgents::class)
+        ->filterTable('active_invitation', 'with')
+        ->assertCountTableRecords(1)
+        ->assertCanSeeTableRecords([
+            $withActiveInvitation,
+        ])
+        ->assertCanNotSeeTableRecords([
+            $withExpiredInvitation,
+            $withRevokedInvitation,
+            $withoutInvitation,
+        ])
+        ->filterTable('active_invitation', 'without')
+        ->assertCountTableRecords(3)
+        ->assertCanSeeTableRecords([
+            $withExpiredInvitation,
+            $withRevokedInvitation,
+            $withoutInvitation,
+        ])
+        ->assertCanNotSeeTableRecords([
+            $withActiveInvitation,
+        ]);
+});
+
 it('disambiguates imported region from questionnaire region choices on submission details', function () {
     $admin = User::factory()->create();
     $agent = Agent::factory()->create([

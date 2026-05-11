@@ -91,6 +91,21 @@ class AgentsTable
                         'without' => $query->whereDoesntHave('submissions', fn ($submissionQuery) => $submissionQuery->whereNotNull('submitted_at')),
                         default => $query,
                     }),
+                SelectFilter::make('active_invitation')
+                    ->label('Invitation active')
+                    ->options([
+                        'with' => 'Avec invitation active',
+                        'without' => 'Sans invitation active',
+                    ])
+                    ->query(fn ($query, array $data) => match ($data['value'] ?? null) {
+                        'with' => $query->whereHas('invitationTokens', fn ($invitationQuery) => $invitationQuery
+                            ->whereNull('revoked_at')
+                            ->where('expires_at', '>', now())),
+                        'without' => $query->whereDoesntHave('invitationTokens', fn ($invitationQuery) => $invitationQuery
+                            ->whereNull('revoked_at')
+                            ->where('expires_at', '>', now())),
+                        default => $query,
+                    }),
                 SelectFilter::make('has_email')
                     ->label('Email')
                     ->options([
