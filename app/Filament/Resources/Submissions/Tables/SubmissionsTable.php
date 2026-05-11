@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Submissions\Tables;
 
+use App\Enums\CampaignFormType;
 use App\Enums\SubmissionStatus;
 use App\Models\Agent;
 use App\Models\Campaign;
@@ -42,6 +43,11 @@ class SubmissionsTable
                     ->label('Structure actuelle')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('agent.region')
+                    ->label('Région initiale')
+                    ->searchable()
+                    ->toggleable()
+                    ->placeholder('—'),
                 TextColumn::make('submitted_at')
                     ->label('Soumise le')
                     ->dateTime('d/m/Y H:i')
@@ -68,8 +74,12 @@ class SubmissionsTable
                     ->placeholder('—'),
                 TextColumn::make('region_choices')
                     ->label('Régions choisies')
-                    ->formatStateUsing(fn ($state) => is_array($state) ? implode(', ', $state) : null)
-                    ->toggleable()
+                    ->state(fn ($record): ?string => $record->position?->campaign?->form_type === CampaignFormType::CriteriaQuestionnaire
+                        && is_array($record->region_choices)
+                        && $record->region_choices !== []
+                            ? implode(', ', $record->region_choices)
+                            : null)
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->placeholder('—'),
                 IconColumn::make('responses.currently_active')
                     ->label('En activité')
