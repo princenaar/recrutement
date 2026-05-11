@@ -170,4 +170,40 @@ class InvitationService
         — Équipe de recrutement MSHP
         TEXT;
     }
+
+    public function normalizeSenegalWhatsappPhone(?string $phone): ?string
+    {
+        if ($phone === null) {
+            return null;
+        }
+
+        $normalized = preg_replace('/\s+/', '', $phone);
+
+        if ($normalized === null) {
+            return null;
+        }
+
+        if (preg_match('/^\d{9}$/', $normalized) === 1) {
+            return '221'.$normalized;
+        }
+
+        if (preg_match('/^(?:\+221|221|00221)(\d{9})$/', $normalized, $matches) === 1) {
+            return '221'.$matches[1];
+        }
+
+        return null;
+    }
+
+    public function buildWhatsappInvitationUrl(InvitationToken $token): ?string
+    {
+        $token->loadMissing('agent');
+
+        $phone = $this->normalizeSenegalWhatsappPhone($token->agent->phone);
+
+        if ($phone === null) {
+            return null;
+        }
+
+        return 'https://wa.me/'.$phone.'?text='.rawurlencode($this->buildManualMessage($token));
+    }
 }

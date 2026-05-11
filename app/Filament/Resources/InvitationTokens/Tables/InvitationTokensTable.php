@@ -84,6 +84,15 @@ class InvitationTokensTable
                             ->send();
                     }),
 
+                Action::make('sendWhatsapp')
+                    ->label('WhatsApp')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->color('success')
+                    ->visible(fn (InvitationToken $record, InvitationService $service): bool => $record->isActive()
+                        && $service->buildWhatsappInvitationUrl($record) !== null)
+                    ->url(fn (InvitationToken $record, InvitationService $service): ?string => $service->buildWhatsappInvitationUrl($record))
+                    ->openUrlInNewTab(),
+
                 Action::make('resendEmail')
                     ->label('Renvoyer le mail')
                     ->icon('heroicon-o-envelope')

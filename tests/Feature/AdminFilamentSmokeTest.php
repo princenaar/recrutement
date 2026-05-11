@@ -5,6 +5,7 @@ use App\Enums\SubmissionStatus;
 use App\Filament\Exports\AgentExporter;
 use App\Filament\Exports\SubmissionExporter;
 use App\Filament\Resources\Agents\Pages\ListAgents;
+use App\Filament\Resources\InvitationTokens\Pages\ListInvitationTokens;
 use App\Models\Agent;
 use App\Models\Campaign;
 use App\Models\InvitationToken;
@@ -181,6 +182,43 @@ it('filters candidates by active invitation presence', function () {
         ->assertCanNotSeeTableRecords([
             $withActiveInvitation,
         ]);
+});
+
+it('shows the whatsapp invitation action only for active invitations with a valid senegalese phone number', function () {
+    $admin = User::factory()->create();
+    $campaign = Campaign::factory()->create();
+
+    $activeValidToken = InvitationToken::factory()->create([
+        'agent_id' => Agent::factory()->create(['phone' => '+221 77 535 62 89'])->id,
+        'campaign_id' => $campaign->id,
+        'expires_at' => now()->addDay(),
+        'revoked_at' => null,
+    ]);
+    $activeInvalidToken = InvitationToken::factory()->create([
+        'agent_id' => Agent::factory()->create(['phone' => '331775356289'])->id,
+        'campaign_id' => $campaign->id,
+        'expires_at' => now()->addDay(),
+        'revoked_at' => null,
+    ]);
+    $expiredValidToken = InvitationToken::factory()->create([
+        'agent_id' => Agent::factory()->create(['phone' => '775356289'])->id,
+        'campaign_id' => $campaign->id,
+        'expires_at' => now()->subDay(),
+        'revoked_at' => null,
+    ]);
+    $revokedValidToken = InvitationToken::factory()->create([
+        'agent_id' => Agent::factory()->create(['phone' => '00221775356289'])->id,
+        'campaign_id' => $campaign->id,
+        'expires_at' => now()->addDay(),
+        'revoked_at' => now(),
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(ListInvitationTokens::class)
+        ->assertTableActionVisible('sendWhatsapp', $activeValidToken)
+        ->assertTableActionHidden('sendWhatsapp', $activeInvalidToken)
+        ->assertTableActionHidden('sendWhatsapp', $expiredValidToken)
+        ->assertTableActionHidden('sendWhatsapp', $revokedValidToken);
 });
 
 it('disambiguates imported region from questionnaire region choices on submission details', function () {

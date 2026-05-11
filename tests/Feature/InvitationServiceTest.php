@@ -127,6 +127,54 @@ it('returns a manual message and sends no notification when agent has no email',
     expect($token->notification_sent_at)->not->toBeNull();
 });
 
+it('normalizes valid senegalese whatsapp phone numbers', function (?string $phone, ?string $expected) {
+    expect($this->service->normalizeSenegalWhatsappPhone($phone))->toBe($expected);
+})->with([
+    ['775356289', '221775356289'],
+    ['221775356289', '221775356289'],
+    ['+221775356289', '221775356289'],
+    ['00221775356289', '221775356289'],
+    ['77 535 62 89', '221775356289'],
+    ['+221 77 535 62 89', '221775356289'],
+    ['77535628', null],
+    ['7753562890', null],
+    ['331775356289', null],
+    ['77535A289', null],
+    [null, null],
+]);
+
+it('builds a whatsapp invitation url with the encoded manual message', function () {
+    $agent = Agent::factory()->create([
+        'phone' => '+221 77 535 62 89',
+        'first_name' => 'Fatou',
+        'last_name' => 'NDIAYE',
+    ]);
+    $campaign = Campaign::factory()->create(['title' => 'Recrutement DSI 2026']);
+    $token = $this->service->createToken($agent, $campaign);
+
+    $url = $this->service->buildWhatsappInvitationUrl($token);
+
+    expect($url)->toStartWith('https://wa.me/221775356289?text=');
+
+    $query = parse_url($url, PHP_URL_QUERY);
+    parse_str($query, $parameters);
+
+    expect($parameters)->toHaveKey('text');
+    expect($parameters['text'])
+        ->toContain('Fatou')
+        ->toContain('NDIAYE')
+        ->toContain('Recrutement DSI 2026')
+        ->toContain($token->token);
+});
+
+it('does not build a whatsapp invitation url when the phone number is invalid', function () {
+    $agent = Agent::factory()->create(['phone' => '331775356289']);
+    $campaign = Campaign::factory()->create();
+    $token = $this->service->createToken($agent, $campaign);
+
+    expect($this->service->buildWhatsappInvitationUrl($token))->toBeNull();
+});
+
 it('sends email invitations in batch only to eligible agents', function () {
     Notification::fake();
 
