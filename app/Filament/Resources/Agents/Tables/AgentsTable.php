@@ -80,6 +80,17 @@ class AgentsTable
                         ->orderBy('import_name')
                         ->pluck('import_name', 'import_name')
                         ->all()),
+                SelectFilter::make('submitted_submission')
+                    ->label('Candidature soumise')
+                    ->options([
+                        'with' => 'Avec candidature soumise',
+                        'without' => 'Sans candidature soumise',
+                    ])
+                    ->query(fn ($query, array $data) => match ($data['value'] ?? null) {
+                        'with' => $query->whereHas('submissions', fn ($submissionQuery) => $submissionQuery->whereNotNull('submitted_at')),
+                        'without' => $query->whereDoesntHave('submissions', fn ($submissionQuery) => $submissionQuery->whereNotNull('submitted_at')),
+                        default => $query,
+                    }),
                 SelectFilter::make('has_email')
                     ->label('Email')
                     ->options([

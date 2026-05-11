@@ -1,15 +1,19 @@
 <?php
 
 use App\Enums\CampaignFormType;
+use App\Enums\SubmissionStatus;
 use App\Filament\Exports\AgentExporter;
 use App\Filament\Exports\SubmissionExporter;
+use App\Filament\Resources\Agents\Pages\ListAgents;
 use App\Models\Agent;
 use App\Models\Campaign;
+use App\Models\InvitationToken;
 use App\Models\Position;
 use App\Models\Submission;
 use App\Models\User;
 use App\Services\InvitationService;
 use Filament\Facades\Filament;
+use Livewire\Livewire;
 
 it('renders the main admin recruitment pages for an authenticated user', function () {
     $admin = User::factory()->create();
@@ -54,6 +58,77 @@ it('enables database notifications for export download links', function () {
         ->assertOk();
 
     expect(Filament::getCurrentPanel()->hasDatabaseNotifications())->toBeTrue();
+});
+
+it('filters imported candidates by submitted application presence', function () {
+    $admin = User::factory()->create();
+    $campaign = Campaign::factory()->create();
+    $position = Position::factory()->create(['campaign_id' => $campaign->id]);
+
+    $withoutSubmission = Agent::factory()->create([
+        'matricule' => 'IMP-A-001',
+        'import_name' => 'Import A',
+    ]);
+    $withSubmittedSubmission = Agent::factory()->create([
+        'matricule' => 'IMP-A-002',
+        'import_name' => 'Import A',
+    ]);
+    $withDraftSubmission = Agent::factory()->create([
+        'matricule' => 'IMP-A-003',
+        'import_name' => 'Import A',
+    ]);
+    $otherImportWithoutSubmission = Agent::factory()->create([
+        'matricule' => 'IMP-B-001',
+        'import_name' => 'Import B',
+    ]);
+
+    $submittedToken = InvitationToken::factory()->create([
+        'agent_id' => $withSubmittedSubmission->id,
+        'campaign_id' => $campaign->id,
+    ]);
+    $draftToken = InvitationToken::factory()->create([
+        'agent_id' => $withDraftSubmission->id,
+        'campaign_id' => $campaign->id,
+    ]);
+
+    Submission::factory()->create([
+        'agent_id' => $withSubmittedSubmission->id,
+        'position_id' => $position->id,
+        'invitation_token_id' => $submittedToken->id,
+        'submitted_at' => now(),
+        'status' => SubmissionStatus::Submitted,
+    ]);
+    Submission::factory()->create([
+        'agent_id' => $withDraftSubmission->id,
+        'position_id' => $position->id,
+        'invitation_token_id' => $draftToken->id,
+        'submitted_at' => null,
+        'status' => SubmissionStatus::Draft,
+    ]);
+
+    Livewire::actingAs($admin)
+        ->test(ListAgents::class)
+        ->filterTable('import_name', 'Import A')
+        ->filterTable('submitted_submission', 'without')
+        ->assertCountTableRecords(2)
+        ->assertCanSeeTableRecords([
+            $withoutSubmission,
+            $withDraftSubmission,
+        ])
+        ->assertCanNotSeeTableRecords([
+            $withSubmittedSubmission,
+            $otherImportWithoutSubmission,
+        ])
+        ->filterTable('submitted_submission', 'with')
+        ->assertCountTableRecords(1)
+        ->assertCanSeeTableRecords([
+            $withSubmittedSubmission,
+        ])
+        ->assertCanNotSeeTableRecords([
+            $withoutSubmission,
+            $withDraftSubmission,
+            $otherImportWithoutSubmission,
+        ]);
 });
 
 it('disambiguates imported region from questionnaire region choices on submission details', function () {
