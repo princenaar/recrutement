@@ -25,13 +25,21 @@ class SubmissionInfolist
                         TextEntry::make('agent.birth_date')->label('Date de naissance')->date('d/m/Y'),
                         TextEntry::make('agent.email')->label('Email')->placeholder('—'),
                         TextEntry::make('agent.phone')->label('Téléphone')->placeholder('—'),
-                        TextEntry::make('agent.category')->label('Catégorie')->badge(),
+                        TextEntry::make('agent.category')
+                            ->label('Catégorie')
+                            ->badge()
+                            ->visible(fn ($record) => $record->position?->campaign?->form_type !== CampaignFormType::CriteriaQuestionnaire),
                         TextEntry::make('agent.agent_status')->label('Statut candidat')->badge(),
                         TextEntry::make('agent.contract_type')->label('Type de contrat')->placeholder('—'),
-                        TextEntry::make('agent.current_position')->label('Fonction actuelle')->placeholder('—'),
+                        TextEntry::make('agent.current_position')
+                            ->label('Fonction actuelle')
+                            ->placeholder('—')
+                            ->visible(fn ($record) => $record->position?->campaign?->form_type !== CampaignFormType::CriteriaQuestionnaire),
                         TextEntry::make('agent.structure')->label('Structure de référence'),
                         TextEntry::make('agent.service')->label('Service de référence')->placeholder('—'),
-                        TextEntry::make('agent.region')->label('Région'),
+                        TextEntry::make('agent.region')
+                            ->label('Région initiale importée')
+                            ->placeholder('—'),
                     ]),
 
                 Section::make('Poste / Campagne')
@@ -69,6 +77,12 @@ class SubmissionInfolist
                     ->columns(2)
                     ->visible(fn ($record) => $record->position?->campaign?->form_type === CampaignFormType::CriteriaQuestionnaire)
                     ->schema([
+                        TextEntry::make('agent.category')
+                            ->label('Diplôme')
+                            ->placeholder('—'),
+                        TextEntry::make('agent.current_position')
+                            ->label('Niveau diplôme')
+                            ->placeholder('—'),
                         IconEntry::make('responses.currently_active')
                             ->label('En activité')
                             ->boolean()
@@ -76,9 +90,12 @@ class SubmissionInfolist
                         TextEntry::make('responses.activity_location')
                             ->label('Lieu d’activité')
                             ->placeholder('—'),
-                        TextEntry::make('region_choices')
+                        TextEntry::make('region_choices_display')
                             ->label('Régions choisies')
-                            ->formatStateUsing(fn ($state) => is_array($state) ? implode(', ', $state) : null)
+                            ->state(fn ($record): ?array => is_array($record->region_choices) && $record->region_choices !== []
+                                ? $record->region_choices
+                                : null)
+                            ->listWithLineBreaks()
                             ->placeholder('—'),
                         TextEntry::make('raw_score')
                             ->label('Score brut')
