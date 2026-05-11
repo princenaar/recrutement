@@ -2,6 +2,7 @@
 
 use App\Enums\CampaignFormType;
 use App\Filament\Exports\AgentExporter;
+use App\Filament\Exports\SubmissionExporter;
 use App\Models\Agent;
 use App\Models\Campaign;
 use App\Models\Position;
@@ -158,5 +159,42 @@ it('defines selectable agent export columns including related recruitment detail
         ->and($invitationsDetail->isEnabledByDefault())
         ->toBeFalse()
         ->and($submissionsDetail->isEnabledByDefault())
+        ->toBeFalse();
+});
+
+it('defines selectable submission export columns with excel friendly json fields', function () {
+    $columns = collect(SubmissionExporter::getColumns());
+    $columnNames = $columns
+        ->map(fn ($column): string => $column->getName())
+        ->all();
+
+    expect($columnNames)->toContain(
+        'agent.matricule',
+        'agent.full_name',
+        'position.title',
+        'position.campaign.title',
+        'diplomas_detail',
+        'responses',
+        'responses.currently_active',
+        'region_choices',
+        'score_breakdown',
+        'invitation_status',
+    );
+
+    $responses = $columns->first(fn ($column): bool => $column->getName() === 'responses');
+    $scoreBreakdown = $columns->first(fn ($column): bool => $column->getName() === 'score_breakdown');
+    $diplomasDetail = $columns->first(fn ($column): bool => $column->getName() === 'diplomas_detail');
+
+    expect($responses->getLabel())
+        ->toBe('Réponses questionnaire')
+        ->and($responses->isEnabledByDefault())
+        ->toBeFalse()
+        ->and($scoreBreakdown->getLabel())
+        ->toBe('Détail des points')
+        ->and($scoreBreakdown->isEnabledByDefault())
+        ->toBeFalse()
+        ->and($diplomasDetail->getLabel())
+        ->toBe('Détail diplômes')
+        ->and($diplomasDetail->isEnabledByDefault())
         ->toBeFalse();
 });

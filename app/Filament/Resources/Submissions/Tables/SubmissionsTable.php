@@ -4,8 +4,12 @@ namespace App\Filament\Resources\Submissions\Tables;
 
 use App\Enums\CampaignFormType;
 use App\Enums\SubmissionStatus;
+use App\Filament\Exports\SubmissionExporter;
 use App\Models\Agent;
 use App\Models\Campaign;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\ExportAction;
+use Filament\Actions\ExportBulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
@@ -135,6 +139,20 @@ class SubmissionsTable
             ->recordActions([
                 ViewAction::make()
                     ->label('Voir'),
+            ])
+            ->headerActions([
+                ExportAction::make()
+                    ->label('Exporter')
+                    ->exporter(SubmissionExporter::class)
+                    ->columnMappingColumns(3),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    ExportBulkAction::make()
+                        ->label('Exporter la sélection')
+                        ->exporter(SubmissionExporter::class)
+                        ->columnMappingColumns(3),
+                ])->label('Actions groupées'),
             ]);
     }
 }
