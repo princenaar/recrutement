@@ -5,8 +5,11 @@ namespace App\Filament\Resources\Agents\Tables;
 use App\Filament\Actions\ImportAgentsAction;
 use App\Filament\Actions\SendBatchInvitationsAction;
 use App\Filament\Actions\SendInvitationAction;
+use App\Filament\Exports\AgentExporter;
 use App\Models\Agent;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\ExportAction;
+use Filament\Actions\ExportBulkAction;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -91,6 +94,10 @@ class AgentsTable
             ])
             ->headerActions([
                 ImportAgentsAction::make(),
+                ExportAction::make()
+                    ->label('Exporter')
+                    ->exporter(AgentExporter::class)
+                    ->columnMappingColumns(3),
             ])
             ->recordActions([
                 SendInvitationAction::make(),
@@ -98,6 +105,10 @@ class AgentsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     SendBatchInvitationsAction::make(),
+                    ExportBulkAction::make()
+                        ->label('Exporter la sélection')
+                        ->exporter(AgentExporter::class)
+                        ->columnMappingColumns(3),
                 ])->label('Actions groupées'),
             ]);
     }

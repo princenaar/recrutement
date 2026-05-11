@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\CampaignFormType;
+use App\Filament\Exports\AgentExporter;
 use App\Models\Agent;
 use App\Models\Campaign;
 use App\Models\Position;
@@ -123,4 +124,39 @@ it('disambiguates imported region from questionnaire region choices on submissio
         ->assertSee('Fonction actuelle')
         ->assertSee('Analyste')
         ->assertDontSee('Régions choisies');
+});
+
+it('defines selectable agent export columns including related recruitment details', function () {
+    $columns = collect(AgentExporter::getColumns());
+    $columnNames = $columns
+        ->map(fn ($column): string => $column->getName())
+        ->all();
+
+    expect($columnNames)->toContain(
+        'matricule',
+        'first_name',
+        'last_name',
+        'category',
+        'current_position',
+        'invitation_tokens_count',
+        'active_invitations_count',
+        'invitations_detail',
+        'submissions_count',
+        'submission_positions',
+        'submission_statuses',
+        'region_choices',
+        'submissions_detail',
+    );
+
+    $invitationsDetail = $columns->first(fn ($column): bool => $column->getName() === 'invitations_detail');
+    $submissionsDetail = $columns->first(fn ($column): bool => $column->getName() === 'submissions_detail');
+
+    expect($invitationsDetail->getLabel())
+        ->toBe('Détail invitations')
+        ->and($submissionsDetail->getLabel())
+        ->toBe('Détail candidatures')
+        ->and($invitationsDetail->isEnabledByDefault())
+        ->toBeFalse()
+        ->and($submissionsDetail->isEnabledByDefault())
+        ->toBeFalse();
 });
