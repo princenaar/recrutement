@@ -63,6 +63,14 @@ it('disambiguates imported region from questionnaire region choices on submissio
         'invitation_token_id' => $criteriaToken->id,
         'region_choices' => ['Dakar', 'Thiès', 'Saint-Louis'],
         'responses' => ['currently_active' => 'no'],
+        'score_breakdown' => [
+            'degree' => 15,
+            'experience' => 2,
+            'snis' => 0,
+            'dhis2' => 0,
+            'computer_skills' => 5,
+            'terrain_motivation' => 2,
+        ],
         'cv_path' => null,
     ]);
 
@@ -79,6 +87,14 @@ it('disambiguates imported region from questionnaire region choices on submissio
         ->assertSee('Dakar')
         ->assertSee('Thiès')
         ->assertSee('Saint-Louis')
+        ->assertSee('Détail des points')
+        ->assertSee('Diplôme : 15 pt')
+        ->assertSee('Expérience : 2 pt')
+        ->assertSee('Connaissance SNIS : 0 pt')
+        ->assertSee('Connaissance DHIS2 : 0 pt')
+        ->assertSee('Maîtrise informatique : 5 pt')
+        ->assertSee('Motivation terrain : 2 pt')
+        ->assertDontSee('0 : 15 pt')
         ->assertDontSee('Thi\\u00e8s')
         ->assertDontSee('Catégorie')
         ->assertDontSee('Fonction actuelle');

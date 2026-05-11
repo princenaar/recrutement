@@ -107,9 +107,13 @@ class SubmissionInfolist
                             ->placeholder('—'),
                         TextEntry::make('score_breakdown')
                             ->label('Détail des points')
-                            ->formatStateUsing(fn ($state) => collect($state ?? [])
-                                ->map(fn ($points, $criterion) => "{$criterion} : {$points} pt")
-                                ->implode("\n"))
+                            ->state(fn ($record): ?array => is_array($record->score_breakdown) && $record->score_breakdown !== []
+                                ? collect($record->score_breakdown)
+                                    ->map(fn ($points, $criterion): string => self::scoreCriterionLabel((string) $criterion).' : '.$points.' pt')
+                                    ->values()
+                                    ->all()
+                                : null)
+                            ->bulleted()
                             ->columnSpanFull()
                             ->placeholder('—'),
                     ]),
@@ -163,5 +167,18 @@ class SubmissionInfolist
                             ->placeholder('—'),
                     ]),
             ]);
+    }
+
+    private static function scoreCriterionLabel(string $criterion): string
+    {
+        return match ($criterion) {
+            'degree' => 'Diplôme',
+            'experience' => 'Expérience',
+            'snis' => 'Connaissance SNIS',
+            'dhis2' => 'Connaissance DHIS2',
+            'computer_skills' => 'Maîtrise informatique',
+            'terrain_motivation' => 'Motivation terrain',
+            default => str($criterion)->replace('_', ' ')->ucfirst()->toString(),
+        };
     }
 }
