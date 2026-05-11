@@ -9,6 +9,7 @@ use App\Models\Position;
 use App\Models\Submission;
 use App\Models\User;
 use App\Services\InvitationService;
+use Filament\Facades\Filament;
 
 it('renders the main admin recruitment pages for an authenticated user', function () {
     $admin = User::factory()->create();
@@ -45,6 +46,14 @@ it('renders the main admin recruitment pages for an authenticated user', functio
     $this->actingAs($admin)
         ->get(route('filament.admin.resources.invitation-tokens.index'))
         ->assertOk();
+});
+
+it('enables database notifications for export download links', function () {
+    $this->actingAs(User::factory()->create())
+        ->get(route('filament.admin.pages.dashboard'))
+        ->assertOk();
+
+    expect(Filament::getCurrentPanel()->hasDatabaseNotifications())->toBeTrue();
 });
 
 it('disambiguates imported region from questionnaire region choices on submission details', function () {
