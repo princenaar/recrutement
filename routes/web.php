@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\FileDownloadController;
 use App\Http\Controllers\CandidatePortalController;
+use App\Http\Controllers\CnisPositionInterestController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -19,4 +20,9 @@ Route::middleware(['web', 'auth'])
 Route::prefix('candidature')->name('candidate.')->group(function () {
     Route::get('/{token}', [CandidatePortalController::class, 'show'])->name('portal');
     Route::post('/{token}', [CandidatePortalController::class, 'save'])->name('save');
+});
+
+Route::prefix('cnis')->name('cnis.')->group(function () {
+    Route::get('/postes', [CnisPositionInterestController::class, 'show'])->name('positions.form');
+    Route::post('/postes', [CnisPositionInterestController::class, 'store'])->name('positions.store');
 });
