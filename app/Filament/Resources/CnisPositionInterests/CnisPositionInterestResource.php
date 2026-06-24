@@ -22,7 +22,7 @@ class CnisPositionInterestResource extends Resource
 
     protected static ?string $navigationLabel = 'Choix des postes';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'CNIS';
+    protected static string|\UnitEnum|null $navigationGroup = 'CNDIS';
 
     protected static ?int $navigationSort = 10;
 
@@ -30,12 +30,12 @@ class CnisPositionInterestResource extends Resource
 
     public static function getModelLabel(): string
     {
-        return 'choix de poste CNIS';
+        return 'choix de poste CNDIS';
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'choix des postes CNIS';
+        return 'choix des postes CNDIS';
     }
 
     public static function form(Schema $schema): Schema

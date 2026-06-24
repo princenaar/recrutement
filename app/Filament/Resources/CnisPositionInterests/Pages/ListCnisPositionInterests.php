@@ -9,7 +9,7 @@ class ListCnisPositionInterests extends ListRecords
 {
     protected static string $resource = CnisPositionInterestResource::class;
 
-    protected static ?string $title = 'Choix des postes CNIS';
+    protected static ?string $title = 'Choix des postes CNDIS';
 
     protected function getHeaderActions(): array
     {

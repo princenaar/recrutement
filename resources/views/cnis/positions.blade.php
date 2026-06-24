@@ -1,6 +1,6 @@
 @extends('layouts.candidate')
 
-@section('title', 'Choix des postes CNIS')
+@section('title', 'Choix des postes CNDIS')
 
 @php
     $selectedInterestStatus = old('interest_status');
@@ -13,8 +13,8 @@
 
 @section('content')
     <section class="space-y-2 mb-8">
-        <p class="text-xs uppercase tracking-wider text-emerald-700 font-semibold">Centre National d'Intelligence Sanitaire</p>
-        <h2 class="text-2xl font-semibold text-gray-900">Choix des postes CNIS</h2>
+        <p class="text-xs uppercase tracking-wider text-emerald-700 font-semibold">Centre National des Données d'Intelligence Sanitaire</p>
+        <h2 class="text-2xl font-semibold text-gray-900">Choix des postes CNDIS</h2>
         <p class="text-sm text-gray-600">
             Indiquez les postes qui vous intéressent, dans l'ordre de préférence. Vous pouvez choisir entre 1 et 3 postes, ou indiquer explicitement que vous n'êtes pas intéressé.
         </p>

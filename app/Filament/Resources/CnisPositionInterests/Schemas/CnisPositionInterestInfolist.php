@@ -14,7 +14,7 @@ class CnisPositionInterestInfolist
     {
         return $schema
             ->components([
-                Section::make('Réponse CNIS')
+                Section::make('Réponse CNDIS')
                     ->columns(2)
                     ->schema([
                         TextEntry::make('full_name')

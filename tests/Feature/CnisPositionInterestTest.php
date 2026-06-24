@@ -4,12 +4,12 @@ use App\Models\CnisPositionInterest;
 use App\Models\User;
 use App\Support\CnisPositions;
 
-it('renders the public CNIS position interest form with all positions and descriptions', function () {
+it('renders the public CNDIS position interest form with all positions and descriptions', function () {
     $response = $this->get(route('cnis.positions.form'));
 
     $response->assertOk()
         ->assertViewIs('cnis.positions')
-        ->assertSee('Choix des postes CNIS')
+        ->assertSee('Choix des postes CNDIS')
         ->assertSee('Voir la description')
         ->assertSee('Support de Niveau 1 et 2', false);
 
@@ -125,7 +125,7 @@ it('rejects position choices when the candidate is not interested', function () 
     expect(CnisPositionInterest::count())->toBe(0);
 });
 
-it('renders the CNIS admin resource with readable position labels', function () {
+it('renders the CNDIS admin resource with readable position labels', function () {
     $admin = User::factory()->create();
     CnisPositionInterest::factory()->create([
         'first_name' => 'Awa',

@@ -42,7 +42,7 @@ class CnisPositionInterestExporter extends Exporter
 
     public static function getCompletedNotificationBody(Export $export): string
     {
-        $body = "L'export des choix CNIS est terminé : ".Number::format($export->successful_rows).' '.str('ligne')->plural($export->successful_rows).' exportée(s).';
+        $body = "L'export des choix CNDIS est terminé : ".Number::format($export->successful_rows).' '.str('ligne')->plural($export->successful_rows).' exportée(s).';
 
         if ($failedRowsCount = $export->getFailedRowsCount()) {
             $body .= ' '.Number::format($failedRowsCount).' '.str('ligne')->plural($failedRowsCount).' en échec.';
