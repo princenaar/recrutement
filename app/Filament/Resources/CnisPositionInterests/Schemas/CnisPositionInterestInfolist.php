@@ -24,7 +24,8 @@ class CnisPositionInterestInfolist
                             ->dateTime('d/m/Y H:i'),
                         IconEntry::make('not_interested')
                             ->label('Pas intéressé')
-                            ->boolean(),
+                            ->boolean()
+                            ->visible(fn ($record): bool => (bool) $record->not_interested),
                         TextEntry::make('interest_status_label')
                             ->label('Statut')
                             ->badge()

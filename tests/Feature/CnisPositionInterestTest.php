@@ -144,3 +144,29 @@ it('renders the CNDIS admin resource with readable position labels', function ()
         ->assertSee(CnisPositions::title('data_analyst'))
         ->assertSee(CnisPositions::title('program_lead'));
 });
+
+it('hides the not interested label on the CNDIS admin detail page when the candidate is interested', function () {
+    $admin = User::factory()->create();
+    $interest = CnisPositionInterest::factory()->create([
+        'not_interested' => false,
+        'first_choice' => 'data_analyst',
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('filament.admin.resources.cnis-position-interests.view', $interest))
+        ->assertOk()
+        ->assertSee('Intéressé')
+        ->assertDontSee('Pas intéressé');
+});
+
+it('shows the not interested label on the CNDIS admin detail page when the candidate is not interested', function () {
+    $admin = User::factory()->create();
+    $interest = CnisPositionInterest::factory()
+        ->notInterested()
+        ->create();
+
+    $this->actingAs($admin)
+        ->get(route('filament.admin.resources.cnis-position-interests.view', $interest))
+        ->assertOk()
+        ->assertSee('Pas intéressé');
+});
