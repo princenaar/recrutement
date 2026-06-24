@@ -140,18 +140,17 @@
 
                         <dialog
                             id="cnis-position-{{ $loop->index }}"
-                            class="w-[min(48rem,calc(100%-2rem))] max-h-[85vh] rounded-lg border border-gray-200 p-0 shadow-xl backdrop:bg-gray-950/50"
+                            class="m-auto w-[min(48rem,calc(100%-2rem))] max-h-[85vh] rounded-lg border border-gray-200 p-0 shadow-xl backdrop:bg-gray-950/50"
                         >
                             <div class="sticky top-0 flex items-center justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4">
                                 <h5 class="text-base font-semibold text-gray-900">{{ $position['title'] }}</h5>
-                                <form method="dialog">
-                                    <button
-                                        type="submit"
-                                        class="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                                    >
-                                        Fermer
-                                    </button>
-                                </form>
+                                <button
+                                    type="button"
+                                    data-modal-close
+                                    class="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                >
+                                    Fermer
+                                </button>
                             </div>
 
                             <div class="max-h-[calc(85vh-4.5rem)] overflow-y-auto px-5 py-4 text-sm text-gray-700 [&_h2]:mt-5 [&_h2:first-child]:mt-0 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-gray-950 [&_h3]:mt-4 [&_h3]:font-semibold [&_h3]:text-gray-900 [&_p]:mt-2 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 [&_strong]:font-semibold">
@@ -218,6 +217,12 @@
             document.querySelectorAll('[data-modal-open]').forEach((button) => {
                 button.addEventListener('click', () => {
                     document.getElementById(button.dataset.modalOpen)?.showModal();
+                });
+            });
+
+            document.querySelectorAll('[data-modal-close]').forEach((button) => {
+                button.addEventListener('click', () => {
+                    button.closest('dialog')?.close();
                 });
             });
 
