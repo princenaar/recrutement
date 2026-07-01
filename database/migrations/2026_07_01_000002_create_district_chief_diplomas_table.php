@@ -13,13 +13,19 @@ return new class extends Migration
     {
         Schema::create('district_chief_diplomas', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('district_chief_academic_profile_id')
-                ->constrained()
-                ->cascadeOnDelete();
+            $table->foreignId('district_chief_academic_profile_id');
             $table->string('name');
             $table->unsignedSmallInteger('obtained_year');
             $table->string('scan_path');
             $table->timestamps();
+
+            $table->foreign(
+                'district_chief_academic_profile_id',
+                'district_chief_diplomas_profile_fk'
+            )
+                ->references('id')
+                ->on('district_chief_academic_profiles')
+                ->cascadeOnDelete();
         });
     }
 
