@@ -49,11 +49,21 @@
         @endif
 
         @if ($errors->any())
-            <div class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            @php($compressionUrl = 'https://www.ilovepdf.com/compress_pdf')
+
+            <div id="form-error-summary" role="alert" tabindex="-1" class="mb-6 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 focus:outline-none focus:ring-2 focus:ring-red-500">
                 <p class="font-medium mb-1">Veuillez corriger les erreurs suivantes :</p>
                 <ul class="list-disc list-inside space-y-1">
                     @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
+                        <li>
+                            @if (str_contains($error, $compressionUrl))
+                                @php($errorParts = explode($compressionUrl, $error, 2))
+
+                                {{ $errorParts[0] }}<a href="{{ $compressionUrl }}" target="_blank" rel="noopener noreferrer" class="font-semibold underline">iLovePDF Compress PDF</a>{{ $errorParts[1] ?? '' }}
+                            @else
+                                {{ $error }}
+                            @endif
+                        </li>
                     @endforeach
                 </ul>
             </div>

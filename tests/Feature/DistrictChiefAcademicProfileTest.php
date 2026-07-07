@@ -95,6 +95,80 @@ it('requires at least one diploma', function () {
     expect(DistrictChiefDiploma::count())->toBe(0);
 });
 
+it('renders explicit validation messages after a rejected public submission', function () {
+    $this->followingRedirects()
+        ->post(route('district-chief-academic-profiles.store'), [])
+        ->assertOk()
+        ->assertSee('Le prénom est obligatoire.')
+        ->assertSee('Le nom est obligatoire.')
+        ->assertSee('La date de prise de service est obligatoire.')
+        ->assertSee('Veuillez ajouter au moins un diplôme.');
+
+    expect(DistrictChiefAcademicProfile::count())->toBe(0);
+});
+
+it('renders an explicit unsupported file message', function () {
+    $this->followingRedirects()
+        ->post(route('district-chief-academic-profiles.store'), [
+            'first_name' => 'Awa',
+            'last_name' => 'DIOP',
+            'service_start_date' => '2024-03-15',
+            'diplomas' => [
+                [
+                    'name' => 'Doctorat en médecine',
+                    'obtained_year' => 2018,
+                    'scan' => districtChiefUpload('scan.txt', 100, 'text/plain'),
+                ],
+            ],
+        ])
+        ->assertOk()
+        ->assertSee('Le scan du diplôme doit être au format PDF, PNG, JPG ou JPEG.');
+
+    expect(DistrictChiefAcademicProfile::count())->toBe(0);
+});
+
+it('renders the PDF compression link when a PDF is too large', function () {
+    config(['recrutement.upload_max_size_kb' => 1]);
+
+    $this->followingRedirects()
+        ->post(route('district-chief-academic-profiles.store'), [
+            'first_name' => 'Awa',
+            'last_name' => 'DIOP',
+            'service_start_date' => '2024-03-15',
+            'training_certificate' => districtChiefUpload('certificat.pdf', 2),
+            'diplomas' => [
+                [
+                    'name' => 'Doctorat en médecine',
+                    'obtained_year' => 2018,
+                    'scan' => districtChiefUpload('doctorat.pdf', 1),
+                ],
+            ],
+        ])
+        ->assertOk()
+        ->assertSee('Le fichier ne doit pas dépasser')
+        ->assertSee('iLovePDF Compress PDF')
+        ->assertSee('https://www.ilovepdf.com/compress_pdf');
+
+    expect(DistrictChiefAcademicProfile::count())->toBe(0);
+});
+
+it('redirects requests over post max size with a friendly upload error', function () {
+    $redirectUrl = route('district-chief-academic-profiles.form', ['upload_error' => 'too_large']);
+
+    $this->withServerVariables(['CONTENT_LENGTH' => PHP_INT_MAX])
+        ->post(route('district-chief-academic-profiles.store'), [])
+        ->assertRedirect($redirectUrl);
+
+    $this->withServerVariables(['CONTENT_LENGTH' => 0])
+        ->get($redirectUrl)
+        ->assertOk()
+        ->assertSee('La taille totale des fichiers sélectionnés dépasse la limite autorisée')
+        ->assertSee('iLovePDF Compress PDF')
+        ->assertSee('https://www.ilovepdf.com/compress_pdf');
+
+    expect(DistrictChiefAcademicProfile::count())->toBe(0);
+});
+
 it('rejects unsupported files and oversized certificates', function () {
     $this->post(route('district-chief-academic-profiles.store'), [
         'first_name' => 'Awa',
