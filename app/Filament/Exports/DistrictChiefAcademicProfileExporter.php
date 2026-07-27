@@ -30,6 +30,9 @@ class DistrictChiefAcademicProfileExporter extends Exporter
             ExportColumn::make('diplomas_detail')
                 ->label('Détail diplômes')
                 ->state(fn (DistrictChiefAcademicProfile $record): ?string => self::diplomasDetail($record)),
+            ExportColumn::make('academic_details_url')
+                ->label('Voir les détails académiques')
+                ->state(fn (DistrictChiefAcademicProfile $record): string => self::academicDetailsLink($record)),
             ExportColumn::make('training_certificate_present')
                 ->label('Certificat inscription')
                 ->state(fn (DistrictChiefAcademicProfile $record): string => $record->training_certificate_path === null ? 'Non' : 'Oui'),
@@ -62,5 +65,12 @@ class DistrictChiefAcademicProfileExporter extends Exporter
             ->implode(' | ');
 
         return $formatted !== '' ? $formatted : null;
+    }
+
+    private static function academicDetailsLink(DistrictChiefAcademicProfile $record): string
+    {
+        $url = route('filament.admin.resources.district-chief-academic-profiles.view', ['record' => $record]);
+
+        return sprintf('=HYPERLINK("%s","Voir les diplômes")', str_replace('"', '""', $url));
     }
 }

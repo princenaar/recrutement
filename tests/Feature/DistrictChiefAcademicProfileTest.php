@@ -4,8 +4,10 @@ use App\Filament\Exports\DistrictChiefAcademicProfileExporter;
 use App\Models\DistrictChiefAcademicProfile;
 use App\Models\DistrictChiefDiploma;
 use App\Models\User;
+use Filament\Actions\Exports\Models\Export;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use OpenSpout\Common\Entity\Cell\FormulaCell;
 
 beforeEach(function () {
     Storage::fake(config('recrutement.storage_disk'));
@@ -215,6 +217,11 @@ it('renders the admin list and detail pages', function () {
         'name' => 'Doctorat en médecine',
         'obtained_year' => 2018,
     ]);
+    DistrictChiefDiploma::factory()->create([
+        'district_chief_academic_profile_id' => $profile->id,
+        'name' => 'Master Santé publique',
+        'obtained_year' => 2020,
+    ]);
 
     $this->actingAs($admin)
         ->get(route('filament.admin.resources.district-chief-academic-profiles.index'))
@@ -226,6 +233,7 @@ it('renders the admin list and detail pages', function () {
         ->get(route('filament.admin.resources.district-chief-academic-profiles.view', $profile))
         ->assertOk()
         ->assertSee('Doctorat en médecine')
+        ->assertSee('Master Santé publique')
         ->assertSee('Télécharger le certificat');
 });
 
@@ -258,17 +266,44 @@ it('protects and serves district chief academic files through admin routes', fun
         ->assertDownload();
 });
 
-it('defines the export columns for academic profiles', function () {
-    $columns = collect(DistrictChiefAcademicProfileExporter::getColumns())
+it('exports a clickable link to the academic profile details', function () {
+    $columns = collect(DistrictChiefAcademicProfileExporter::getColumns());
+    $columnNames = $columns
         ->map(fn ($column): string => $column->getName())
         ->all();
 
-    expect($columns)->toContain(
+    expect($columnNames)->toContain(
         'first_name',
         'last_name',
         'service_start_date',
         'diplomas_count',
         'diplomas_detail',
+        'academic_details_url',
         'training_certificate_present',
     );
+
+    $academicDetailsColumn = $columns->first(
+        fn ($column): bool => $column->getName() === 'academic_details_url',
+    );
+    $profile = DistrictChiefAcademicProfile::factory()->create();
+    $exporter = new DistrictChiefAcademicProfileExporter(
+        new Export,
+        ['academic_details_url' => 'Voir les détails académiques'],
+        [],
+    );
+    $exportedRow = $exporter($profile);
+
+    expect($academicDetailsColumn->getLabel())
+        ->toBe('Voir les détails académiques')
+        ->and($academicDetailsColumn->isEnabledByDefault())
+        ->toBeTrue()
+        ->and($exportedRow)
+        ->toBe([
+            sprintf(
+                '=HYPERLINK("%s","Voir les diplômes")',
+                route('filament.admin.resources.district-chief-academic-profiles.view', ['record' => $profile]),
+            ),
+        ])
+        ->and($exporter->makeXlsxRow($exportedRow)->getCellAtIndex(0))
+        ->toBeInstanceOf(FormulaCell::class);
 });
