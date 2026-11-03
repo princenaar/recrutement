@@ -26,7 +26,7 @@ beforeEach(function () {
         'DEPLOY_WRITERS_STOPPED' => '1',
     ];
     $this->environment = [];
-    foreach (['APP_ENV', ...array_keys($this->parameters)] as $key) {
+    foreach (['APP_ENV', 'DEPLOY_DB_SERVER_UID', ...array_keys($this->parameters)] as $key) {
         $this->environment[$key] = getenv($key);
         putenv($key);
     }
@@ -47,6 +47,7 @@ beforeEach(function () {
     $this->application->instance(MaintenanceMode::class, $maintenance);
     $this->identity = (object) ['db' => 'production_fixture', 'uuid' => 'fixture-uuid',
         'host' => 'fixture-server', 'port' => 3306, 'version' => '8.0-fixture'];
+    $this->identityVariable = 'server_uuid';
     $this->repositoryExists = true;
     $this->applied = ['migration_a'];
     $this->migrations = ['migration_a' => 'a.php'];
@@ -62,9 +63,12 @@ beforeEach(function () {
         ->setConstructorArgs([null, 'production_fixture'])
         ->onlyMethods(['getPdo', 'selectOne', 'getSchemaBuilder', 'table', 'statement', 'affectingStatement'])->getMock();
     $this->connection->method('getPdo')->willReturn($pdo);
-    $this->connection->method('selectOne')->with(
-        'SELECT DATABASE() AS db, @@server_uuid AS uuid, @@hostname AS host, @@port AS port, VERSION() AS version', [], false,
-    )->willReturnCallback(fn () => $this->identity);
+    $this->connection->method('selectOne')->willReturnCallback(function (string $sql, array $bindings, bool $read) {
+        expect($sql)->toBe('SELECT DATABASE() AS db, @@'.$this->identityVariable.' AS uuid, @@hostname AS host, @@port AS port, VERSION() AS version')
+            ->and($bindings)->toBe([])->and($read)->toBeFalse();
+
+        return $this->identity;
+    });
     $this->connection->method('getSchemaBuilder')->willReturn($schema);
     $this->connection->method('table')->with('migrations')->willReturn($query);
     $this->connection->expects($this->never())->method('statement');
@@ -105,6 +109,36 @@ test('database URLs are resolved without leaking credentials', function () {
     expect(json_encode($report))->not->toContain('private-user', 'private-password');
     $this->config->set('database.connections.mysql.url', 'mysql://private-user:private-password@other-host:3307/production_fixture');
     expect($report['fingerprint'])->not->toBe($this->guard->inspect($this->parameters)['fingerprint']);
+});
+
+test('MariaDB identity is observed with its UID through either Laravel driver', function (string $driver) {
+    $this->config->set('database.connections.mysql.driver', $driver);
+    unset($this->parameters['DEPLOY_DB_SERVER_UUID']);
+    $this->parameters['DEPLOY_DB_SERVER_UID'] = 'fixture-uid';
+    $this->identityVariable = 'server_uid';
+    $this->identity->uuid = 'fixture-uid';
+    $this->identity->version = '11.4.10-MariaDB';
+    $report = $this->guard->inspect($this->parameters);
+    expect($report['identity']['server_uid'])->toBe('fixture-uid')
+        ->and($report['identity'])->not->toHaveKey('server_uuid');
+    $this->parameters['DEPLOY_DB_SERVER_UID'] = 'another-server';
+    expect(fn () => $this->guard->inspect($this->parameters))->toThrow(RuntimeException::class, 'Datasource');
+})->with(['mysql', 'mariadb']);
+
+test('a server identifier cannot be used with a different observed engine', function () {
+    $this->identity->version = '11.4.10-MariaDB';
+    expect(fn () => $this->guard->inspect($this->parameters))->toThrow(RuntimeException::class, 'Datasource');
+});
+
+test('MariaDB parameters require exactly one server identifier', function () {
+    $expected = ['DEPLOY_DB_DATABASE' => 'production_fixture', 'DEPLOY_DB_SERVER_UID' => 'fixture-uid',
+        'DEPLOY_BACKUP_REFERENCE' => 'backup-fixture', 'DEPLOY_WRITERS_STOPPED' => '1'];
+    file_put_contents($this->runtime.'/.env', implode("\n", array_map(
+        fn (string $key, string $value): string => $key.'='.$value, array_keys($expected), $expected,
+    )));
+    expect(DeploymentPreflight::parameters($this->runtime))->toBe($expected);
+    putenv('DEPLOY_DB_SERVER_UUID=ambiguous-server');
+    expect(fn () => DeploymentPreflight::parameters($this->runtime))->toThrow(RuntimeException::class, 'un seul');
 });
 
 test('unsafe configurations are refused', function (string $key, mixed $value) {

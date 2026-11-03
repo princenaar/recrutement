@@ -42,8 +42,18 @@ class DeploymentPreflight
         } catch (Throwable) {
             throw new RuntimeException('Paramètres de déploiement illisibles.');
         }
+        $identifiers = [];
+        foreach (['DEPLOY_DB_SERVER_UUID', 'DEPLOY_DB_SERVER_UID'] as $key) {
+            $external = getenv($key);
+            if (($external !== false ? $external : ($values[$key] ?? '')) !== '') {
+                $identifiers[] = $key;
+            }
+        }
+        if (count($identifiers) !== 1) {
+            throw new RuntimeException('Configurer un seul identifiant serveur : UUID MySQL ou UID MariaDB.');
+        }
         $parameters = [];
-        foreach (['DEPLOY_DB_DATABASE', 'DEPLOY_DB_SERVER_UUID', 'DEPLOY_BACKUP_REFERENCE', 'DEPLOY_WRITERS_STOPPED'] as $key) {
+        foreach (['DEPLOY_DB_DATABASE', $identifiers[0], 'DEPLOY_BACKUP_REFERENCE', 'DEPLOY_WRITERS_STOPPED'] as $key) {
             $external = getenv($key);
             $value = $external !== false ? $external : ($values[$key] ?? '');
             if (! is_string($value) || trim($value) === '' || preg_match('/[\x00-\x1F\x7F]/', $value)) {
@@ -119,7 +129,7 @@ class DeploymentPreflight
                 throw new RuntimeException;
             }
             $configuration = (new ConfigurationUrlParser)->parseConfiguration($configuration);
-            if (($configuration['driver'] ?? null) !== 'mysql' || isset($configuration['read'])
+            if (! in_array($configuration['driver'] ?? null, ['mysql', 'mariadb'], true) || isset($configuration['read'])
                 || isset($configuration['write']) || is_array($configuration['host'] ?? null)) {
                 throw new RuntimeException;
             }
@@ -127,11 +137,19 @@ class DeploymentPreflight
             if ($connection->getPdo()->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'mysql') {
                 throw new RuntimeException;
             }
-            $row = $connection->selectOne('SELECT DATABASE() AS db, @@server_uuid AS uuid, @@hostname AS host, @@port AS port, VERSION() AS version', [], false);
-            $identity = ['database' => (string) $row->db, 'server_uuid' => (string) $row->uuid,
+            $isMariaDb = isset($parameters['DEPLOY_DB_SERVER_UID']);
+            $identifier = $isMariaDb ? 'server_uid' : 'server_uuid';
+            $parameter = $isMariaDb ? 'DEPLOY_DB_SERVER_UID' : 'DEPLOY_DB_SERVER_UUID';
+            if (isset($parameters['DEPLOY_DB_SERVER_UID'], $parameters['DEPLOY_DB_SERVER_UUID'])) {
+                throw new RuntimeException;
+            }
+            $row = $connection->selectOne('SELECT DATABASE() AS db, @@'.$identifier.' AS uuid, @@hostname AS host, @@port AS port, VERSION() AS version', [], false);
+            $identity = ['database' => (string) $row->db, $identifier => (string) $row->uuid,
                 'host' => (string) $row->host, 'port' => (int) $row->port, 'version' => (string) $row->version];
             if ($identity['database'] !== $parameters['DEPLOY_DB_DATABASE']
-                || $identity['server_uuid'] !== $parameters['DEPLOY_DB_SERVER_UUID']
+                || $identity[$identifier] === '' || $identity[$identifier] !== $parameters[$parameter]
+                || str_contains(strtolower($identity['version']), 'mariadb') !== $isMariaDb
+                || ($configuration['driver'] === 'mariadb' && ! $isMariaDb)
                 || ($configuration['database'] ?? null) !== $identity['database']
                 || $connection->getDatabaseName() !== $identity['database']
                 || $identity['host'] === '' || $identity['port'] < 1 || $identity['version'] === '') {
