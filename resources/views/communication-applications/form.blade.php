@@ -90,7 +90,7 @@
                     ] as $field => [$label, $type, $autocomplete, $maxlength])
                         <div>
                             <label for="{{ $field }}" class="block text-sm font-medium text-gray-700">{{ $label }}</label>
-                            <input id="{{ $field }}" name="{{ $field }}" type="{{ $type }}" autocomplete="{{ $autocomplete }}" maxlength="{{ $maxlength }}" value="{{ old($field) }}" required class="{{ $inputClass }}" @error($field) aria-invalid="true" aria-describedby="{{ $field }}-error" @enderror>
+                            <input id="{{ $field }}" name="{{ $field }}" type="{{ $type }}" autocomplete="{{ $autocomplete }}" maxlength="{{ $maxlength }}" value="{{ is_string(old($field)) ? old($field) : '' }}" required class="{{ $inputClass }}" @error($field) aria-invalid="true" aria-describedby="{{ $field }}-error" @enderror>
                             @error($field) <p id="{{ $field }}-error" class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
                         </div>
                     @endforeach
@@ -106,7 +106,7 @@
                     </div>
                     <div>
                         <label for="current_structure" class="block text-sm font-medium text-gray-700">Structure d’affectation</label>
-                        <input id="current_structure" name="current_structure" type="text" autocomplete="organization" maxlength="255" value="{{ old('current_structure') }}" required class="{{ $inputClass }}" @error('current_structure') aria-invalid="true" aria-describedby="current_structure-error" @enderror>
+                        <input id="current_structure" name="current_structure" type="text" autocomplete="organization" maxlength="255" value="{{ is_string(old('current_structure')) ? old('current_structure') : '' }}" required class="{{ $inputClass }}" @error('current_structure') aria-invalid="true" aria-describedby="current_structure-error" @enderror>
                         @error('current_structure') <p id="current_structure-error" class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
                     </div>
                 </div>
@@ -116,7 +116,7 @@
                 <h2 id="application-title" class="mb-4 text-lg font-semibold text-gray-900">3. Votre candidature</h2>
                 <label for="motivation" class="block text-sm font-medium text-gray-700">Motivation</label>
                 <p id="motivation-help" class="mt-1 text-sm leading-6 text-gray-500">Présentez votre motivation pour ce poste et vos expériences pertinentes. Ce texte remplace la lettre de motivation.</p>
-                <textarea id="motivation" name="motivation" rows="7" maxlength="10000" required class="{{ $inputClass }}" aria-describedby="motivation-help @error('motivation') motivation-error @enderror" @error('motivation') aria-invalid="true" @enderror>{{ old('motivation') }}</textarea>
+                <textarea id="motivation" name="motivation" rows="7" maxlength="10000" required class="{{ $inputClass }}" aria-describedby="motivation-help @error('motivation') motivation-error @enderror" @error('motivation') aria-invalid="true" @enderror>{{ is_string(old('motivation')) ? old('motivation') : '' }}</textarea>
                 @error('motivation') <p id="motivation-error" class="mt-1 text-sm text-red-700">{{ $message }}</p> @enderror
 
                 <div class="mt-6">

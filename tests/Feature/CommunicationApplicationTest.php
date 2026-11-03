@@ -100,6 +100,20 @@ it('rejects an invalid field without storing a dossier', function (array $overri
     'long motivation' => [['motivation' => str_repeat('a', 10001)], 'motivation'],
 ]);
 
+it('safely renders validation errors after receiving array inputs', function (string $field) {
+    $this->from(route('communication-applications.form'))
+        ->post(route('communication-applications.store'), communicationApplicationPayload([$field => ['invalid']]))
+        ->assertSessionHasErrors($field);
+
+    $this->withCookie(config('session.cookie'), session()->getId())
+        ->get(route('communication-applications.form'))->assertOk()
+        ->assertSee('Veuillez corriger les erreurs suivantes :')
+        ->assertSee('id="communication-application-form"', false);
+
+    expect(CommunicationApplication::count())->toBe(0);
+    expect(Storage::disk('private')->allFiles())->toBeEmpty();
+})->with(['first_name', 'last_name', 'email', 'phone', 'administrative_status', 'current_structure', 'position', 'motivation']);
+
 it('rejects files disguised as PDFs and keeps the form values', function () {
     $fake = UploadedFile::fake()->createWithContent('cv.pdf', 'This is a text file, not a PDF.');
     $file = new UploadedFile($fake->getPathname(), 'cv.pdf', 'application/pdf', null, true);
