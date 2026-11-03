@@ -103,7 +103,7 @@ class DeploymentMigrationGuard
 
     private static function isReadOnly(string $query): bool
     {
-        return preg_match('/\A\s*(select|show|describe)\b/i', $query)
+        return preg_match('/\A\s*(select|show)\b/i', $query)
             && ! str_contains(rtrim($query, "; \t\r\n"), ';');
     }
 
