@@ -144,38 +144,30 @@ verify_target() {
 }
 
 migration_preview() {
-    php artisan migrate --database="$database_connection" --pretend --force --no-interaction --no-ansi
+    DEPLOY_PREVIEW=1 run_migrations
 }
 
-authorize_migrations() {
-    local preview confirmation challenge digest verified_preview
-    phase="apercu-migrations"
-    preview="$(migration_preview)"
-    printf '%s\n' "$preview"
-    if grep -Eiq '(^|[^[:alnum:]_])(drop|truncate|replace|modify|change|rename)([[:space:]]|/\*|\*/)|(^|[^[:alnum:]_])(delete[[:space:]]+from|update[[:space:]]+[`"[:alnum:]_])' <<< "$preview"; then
-        phase="autorisation-destructive"
-        digest="$(printf '%s' "$preview" | php -r 'echo hash("sha256", stream_get_contents(STDIN));')"
-        [[ "$digest" =~ ^[a-f0-9]{64}$ ]] || fail "empreinte SQL invalide."
-        challenge="AUTORISER $baseline_fingerprint $revision_after $digest"
-        log "Migration destructive cible=$target_identity révision=$revision_after sql_sha256=$digest"
-        tty -s || fail "une confirmation humaine sur terminal est obligatoire ; aucun override accepté."
-        printf 'Après revue du SQL et de la cible, saisir exactement :\n%s\n> ' "$challenge"
-        IFS= read -r confirmation || fail "confirmation absente."
-        [[ "$confirmation" == "$challenge" ]] || fail "confirmation refusée."
-        verify_target 0
-        [[ "$(git rev-parse HEAD)" == "$revision_after" ]] || fail "la révision a changé après confirmation."
-        [[ -z "$(git status --porcelain)" ]] || fail "le code a changé après confirmation."
-        verified_preview="$(migration_preview)"
-        [[ "$verified_preview" == "$preview" ]] || fail "le SQL a changé après confirmation."
-        log "Autorisation humaine reçue cible=$baseline_fingerprint révision=$revision_after sql_sha256=$digest"
-    fi
+run_migrations() {
+    DEPLOY_FINGERPRINT="$baseline_fingerprint" DEPLOY_REVISION="$revision_after" php -r '
+try {
+    require getcwd()."/vendor/autoload.php";
+    $parameters = App\Services\DeploymentPreflight::parameters(getcwd());
+    $app = require getcwd()."/bootstrap/app.php";
+    $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+    exit($app->make(App\Services\DeploymentMigrationGuard::class)->run(
+        $parameters, getenv("DEPLOY_FINGERPRINT"), getenv("DEPLOY_REVISION"), getenv("DEPLOY_PREVIEW") === "1"
+    ));
+} catch (Throwable) {
+    fwrite(STDERR, "Migration protégée refusée ; maintenance conservée.\n");
+    exit(1);
+}'
 }
 
 main() {
     local command_name current_branch origin_url http_status
     [[ "$#" -eq 0 ]] || fail "utilisation : bash deploy.sh (aucune option acceptée)."
     cd "$APPLICATION_DIRECTORY"
-    for command_name in git php composer curl tty grep; do
+    for command_name in git php composer curl; do
         command -v "$command_name" >/dev/null 2>&1 || fail "commande '$command_name' introuvable."
     done
     php -r 'exit(PHP_VERSION_ID >= 80400 ? 0 : 1);' \
@@ -183,6 +175,7 @@ main() {
     [[ -f .env && -f artisan && -f vendor/autoload.php && -f public/build/manifest.json ]] \
         || fail ".env, artisan, dépendances installées et manifeste Vite sont requis."
     [[ -f app/Services/DeploymentPreflight.php ]] || fail "installer le script et son service depuis la même révision."
+    [[ -f app/Services/DeploymentMigrationGuard.php ]] || fail "le garde des requêtes de migration est requis."
     for command_name in storage/framework storage/framework/cache storage/framework/views storage/logs bootstrap/cache public; do
         [[ -d "$command_name" && -w "$command_name" ]] || fail "répertoire '$command_name' absent ou non inscriptible."
     done
@@ -242,10 +235,12 @@ main() {
     verify_target 0
     phase="statut-migrations"
     php artisan migrate:status --database="$database_connection" --pending --no-interaction
-    authorize_migrations
+    phase="apercu-migrations"
+    log "Aperçu indicatif ; les autorisations porteront sur les requêtes réelles avant exécution."
+    migration_preview
     phase="migrations"
     verify_target 0
-    php artisan migrate --database="$database_connection" --force --no-interaction
+    DEPLOY_PREVIEW=0 run_migrations
     for command_name in config:cache event:cache route:cache view:cache; do
         phase="$command_name"
         php artisan "$command_name" --no-interaction

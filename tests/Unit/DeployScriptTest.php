@@ -27,7 +27,7 @@ class DeployScriptTest extends TestCase
             }
         }
         copy(dirname(__DIR__, 2).'/deploy.sh', $this->runtime.'/deploy.sh');
-        foreach (['.env', 'artisan', 'vendor/autoload.php', 'app/Services/DeploymentPreflight.php', 'public/build/manifest.json'] as $file) {
+        foreach (['.env', 'artisan', 'vendor/autoload.php', 'app/Services/DeploymentPreflight.php', 'app/Services/DeploymentMigrationGuard.php', 'public/build/manifest.json'] as $file) {
             file_put_contents($this->runtime.'/'.$file, 'fixture');
         }
         $functions = str_replace("\r\n", "\n", $this->fakeExecutable());
@@ -95,27 +95,6 @@ class DeployScriptTest extends TestCase
             'SSH' => ['git@github.com:princenaar/recrutement.git', 0],
             'another repository' => ['git@github.com:princenaar/DGP-Demat.git', 1],
             'credentials in URL' => ['https://secret@github.com/princenaar/recrutement.git', 1],
-        ];
-    }
-
-    #[DataProvider('unsafeSql')]
-    public function test_potentially_destructive_sql_requires_human_confirmation(string $sql): void
-    {
-        $process = $this->deploy(['PREVIEW_SQL' => $sql]);
-        $this->assertSame(1, $process->getExitCode(), $this->processOutput($process));
-        $this->assertStringNotContainsString("artisan migrate\n", $this->trace());
-        $this->assertFileExists($this->maintenancePath());
-    }
-
-    /** @return array<string, array{string}> */
-    public static function unsafeSql(): array
-    {
-        return [
-            'drop' => ['DROP TABLE fixture;'],
-            'truncate' => ['TRUNCATE TABLE fixture;'],
-            'delete' => ['DELETE FROM fixture;'],
-            'update' => ['UPDATE fixture SET value = 0;'],
-            'narrow column' => ['ALTER TABLE fixture MODIFY COLUMN value VARCHAR(1);'],
         ];
     }
 
@@ -300,44 +279,6 @@ class DeployScriptTest extends TestCase
         return ['uncached' => ['uncached'], 'Git' => ['git'], 'clear' => ['clear'], 'cache' => ['cache'], 'pending' => ['ready']];
     }
 
-    public function test_an_environment_override_cannot_authorize_a_destructive_migration(): void
-    {
-        $process = $this->deploy(['DESTRUCTIVE' => '1', 'ALLOW_DESTRUCTIVE_MIGRATIONS' => '1']);
-        $this->assertSame(1, $process->getExitCode(), $this->processOutput($process));
-        $this->assertStringNotContainsString("artisan migrate\n", $this->trace());
-        $this->assertFileExists($this->maintenancePath());
-    }
-
-    public function test_destructive_migration_requires_the_exact_target_revision_and_sql_confirmation(): void
-    {
-        $process = $this->deploy(['DESTRUCTIVE' => '1', 'TTY_AVAILABLE' => '1'], $this->confirmation()."\n");
-        $this->assertSame(0, $process->getExitCode(), $this->processOutput($process));
-        $this->assertStringContainsString('Autorisation humaine reçue', $this->processOutput($process));
-        $this->assertSame(2, substr_count($this->trace(), "preview\n"));
-    }
-
-    #[DataProvider('invalidConfirmation')]
-    public function test_destructive_confirmation_cannot_be_reused_after_a_change(array $environment, string $input): void
-    {
-        $process = $this->deploy(array_replace(['DESTRUCTIVE' => '1', 'TTY_AVAILABLE' => '1'], $environment), $input === 'exact' ? $this->confirmation()."\n" : $input);
-        $this->assertSame(1, $process->getExitCode(), $this->processOutput($process));
-        $this->assertStringNotContainsString("artisan migrate\n", $this->trace());
-        $this->assertFileExists($this->maintenancePath());
-    }
-
-    /** @return array<string, array{array<string, string>, string}> */
-    public static function invalidConfirmation(): array
-    {
-        return [
-            'refusal' => [[], "non\n"],
-            'no input' => [[], ''],
-            'SQL changed' => [['SQL_CHANGED' => '1'], 'exact'],
-            'revision changed' => [['REVISION_CHANGED' => '1'], 'exact'],
-            'dirty code' => [['CODE_CHANGED' => '1'], 'exact'],
-            'target changed' => [['DRIFT_AT' => 'confirmation'], 'exact'],
-        ];
-    }
-
     /** @param array<string, string> $environment */
     private function deploy(array $environment = [], string $input = ''): Process
     {
@@ -346,16 +287,10 @@ class DeployScriptTest extends TestCase
             $this->unixPath($this->runtime).'/functions.sh', $this->unixPath($this->runtime).'/deploy.sh'], $this->runtime, array_replace([
                 'TMPDIR' => $this->unixPath($this->runtime).'/tmp', 'USER' => 'deploy-test',
                 'FAKE_ROOT' => $this->unixPath($this->runtime),
-                'FAKE_SQL_HASH' => hash('sha256', 'ALTER TABLE fixture DROP COLUMN obsolete;'),
             ], $environment), $input, 60);
         $process->run();
 
         return $process;
-    }
-
-    private function confirmation(): string
-    {
-        return 'AUTORISER '.str_repeat('a', 64).' '.str_repeat('b', 40).' '.hash('sha256', 'ALTER TABLE fixture DROP COLUMN obsolete;');
     }
 
     private function trace(): string
@@ -401,7 +336,11 @@ if [[ "$name" == "php" ]]; then
         operation="artisan $2"
         if [[ "$2" == "migrate" && "$*" == *"--pretend"* ]]; then operation="preview"; fi
     elif [[ "$1" == "-r" ]]; then
-        if [[ "$2" == *'hash('* ]]; then operation="hash"; else operation="php-version"; fi
+        if [[ "$2" == *'DeploymentMigrationGuard'* ]]; then
+            if [[ "$DEPLOY_PREVIEW" == "1" ]]; then operation="preview"; else operation="artisan migrate"; fi
+        else
+            operation="php-version"
+        fi
     else
         if [[ "$DEPLOY_CLEAR_MANIFESTS" == "1" ]]; then
             operation="bootstrap-manifests"
