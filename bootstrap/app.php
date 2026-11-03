@@ -17,6 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->render(function (PostTooLargeException $exception, Request $request) {
+            if ($request->is('cellule-communication/candidature')) {
+                return redirect()->route('communication-applications.form', ['upload_error' => 'too_large']);
+            }
+
             if (! $request->is('medecins-chefs-district/academique')) {
                 return null;
             }

@@ -8,14 +8,14 @@
 </head>
 <body class="bg-gray-50 text-gray-900 min-h-screen antialiased flex flex-col">
     <header class="bg-white border-b-4 border-emerald-700 shadow-sm">
-        <div class="max-w-5xl mx-auto px-6 py-5 flex items-center gap-6">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-5 flex items-center gap-3 sm:gap-6">
             <img
                 src="{{ asset('images/senegal-flag.png') }}"
                 alt="Drapeau du Sénégal"
-                class="h-20 w-auto shrink-0 rounded-sm shadow-sm"
+                class="h-12 sm:h-20 w-auto shrink-0 rounded-sm shadow-sm"
             >
 
-            <div class="flex-1 text-center leading-tight">
+            <div class="min-w-0 flex-1 text-center leading-tight">
                 <p class="text-sm sm:text-base font-bold tracking-wide uppercase text-gray-900">
                     République du Sénégal
                 </p>
@@ -36,7 +36,7 @@
             <img
                 src="{{ asset('images/logo_mshp.png') }}"
                 alt="Ministère de la Santé et de l'Hygiène Publique"
-                class="h-20 w-auto shrink-0"
+                class="h-12 sm:h-20 w-auto shrink-0"
             >
         </div>
     </header>

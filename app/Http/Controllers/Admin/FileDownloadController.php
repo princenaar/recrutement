@@ -3,15 +3,31 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\CommunicationApplication;
 use App\Models\Diploma;
 use App\Models\DistrictChiefAcademicProfile;
 use App\Models\DistrictChiefDiploma;
 use App\Models\Submission;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class FileDownloadController extends Controller
 {
+    public function communicationCv(Request $request, CommunicationApplication $application): StreamedResponse
+    {
+        $disk = Storage::disk('private');
+        abort_unless($disk->exists($application->cv_path), 404);
+
+        $filename = sprintf('cv_%s_%d.pdf', str($application->full_name)->slug(), $application->id);
+
+        return $disk->response($application->cv_path, $filename, [
+            'Content-Type' => 'application/pdf',
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ], $request->boolean('download') ? 'attachment' : 'inline');
+    }
+
     public function cv(Submission $submission): StreamedResponse
     {
         abort_if($submission->cv_path === null, 404);
