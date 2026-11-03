@@ -3,6 +3,16 @@
 @section('title', 'Accueil')
 
 @section('content')
+    <section class="mb-8 flex flex-col gap-4 rounded-lg border border-emerald-200 bg-white p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h2 class="font-semibold text-gray-900">Appel à candidatures — Cellule de communication</h2>
+            <p class="mt-1 text-sm text-gray-600">Cinq profils recherchés · Dépôt jusqu’au 13 novembre 2026 inclus.</p>
+        </div>
+        <a href="{{ route('communication-applications.form') }}" class="inline-flex shrink-0 justify-center rounded-md bg-emerald-700 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+            Consulter l’appel
+        </a>
+    </section>
+
     <style>
         @keyframes home-rise {
             from {

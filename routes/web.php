@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\FileDownloadController;
 use App\Http\Controllers\CandidatePortalController;
 use App\Http\Controllers\CnisPositionInterestController;
+use App\Http\Controllers\CommunicationApplicationController;
 use App\Http\Controllers\DistrictChiefAcademicProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,9 +17,15 @@ Route::middleware(['web', 'auth'])
     ->group(function () {
         Route::get('submission/{submission}/cv', [FileDownloadController::class, 'cv'])->name('cv');
         Route::get('diploma/{diploma}', [FileDownloadController::class, 'diploma'])->name('diploma');
+        Route::get('communication-application/{application}/cv', [FileDownloadController::class, 'communicationCv'])->name('communication-application.cv');
         Route::get('district-chief-academic-profile/{profile}/certificate', [FileDownloadController::class, 'districtChiefTrainingCertificate'])->name('district-chief-academic-profile.certificate');
         Route::get('district-chief-diploma/{diploma}/scan', [FileDownloadController::class, 'districtChiefDiplomaScan'])->name('district-chief-diploma.scan');
     });
+
+Route::prefix('cellule-communication')->name('communication-applications.')->group(function () {
+    Route::get('/candidature', [CommunicationApplicationController::class, 'show'])->name('form');
+    Route::post('/candidature', [CommunicationApplicationController::class, 'store'])->name('store');
+});
 
 Route::prefix('candidature')->name('candidate.')->group(function () {
     Route::get('/{token}', [CandidatePortalController::class, 'show'])->name('portal');
