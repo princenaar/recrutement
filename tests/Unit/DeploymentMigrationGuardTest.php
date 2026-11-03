@@ -106,6 +106,7 @@ test('potentially destructive SQL requires human confirmation before PDO execute
     'combined alter' => ['ALTER TABLE fixture ADD COLUMN example INT, DROP COLUMN old'],
     'multiple statements' => ['CREATE TABLE example (id INT); DELETE FROM fixture'],
     'read then delete' => ['SELECT 1; DELETE FROM fixture'],
+    'explain analyze' => ['EXPLAIN ANALYZE DELETE fixture FROM fixture'],
 ]);
 
 test('conditional schema deletion invisible to pretend is stopped before execution', function () {
