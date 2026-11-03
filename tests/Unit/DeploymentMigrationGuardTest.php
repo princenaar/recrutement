@@ -89,6 +89,8 @@ test('additive SQL executes without destructive consent', function (string $sql)
     'add column' => ['ALTER TABLE fixture ADD COLUMN example INT'],
     'foreign key' => ['ALTER TABLE child ADD FOREIGN KEY (parent_id) REFERENCES parent(id) ON DELETE CASCADE'],
     'migration log' => ['insert into `migrations` (`migration`, `batch`) values ("fixture", 2)'],
+    'verified schema' => ['CREATE TABLE `fixture`.`new_table` (id INT)'],
+    'literal with dots' => ["CREATE TABLE fixture_new (note VARCHAR(100) DEFAULT 'other.table')"],
 ]);
 
 test('potentially destructive SQL requires human confirmation before PDO executes', function (string $sql) {
@@ -181,6 +183,26 @@ test('secondary connections cannot execute queries during migrations', function 
         ->toThrow(RuntimeException::class, 'connexion secondaire');
     expect($this->executed)->toBe([]);
 });
+
+test('writes cannot target another schema even on the authorized connection', function (string $sql) {
+    $this->response = 'exact';
+    $this->operation = fn () => $this->connection->statement($sql);
+    expect(fn () => $this->guard->run([], str_repeat('a', 64), str_repeat('b', 40)))
+        ->toThrow(RuntimeException::class, 'hors de la base vérifiée');
+    expect($this->executed)->toBe([])->and($this->challenges)->toBe([]);
+})->with([
+    'unquoted' => ['CREATE TABLE other_database.unexpected (id INT)'],
+    'quoted' => ['CREATE TABLE `other_database`.`unexpected` (id INT)'],
+    'double quoted' => ['CREATE TABLE "other_database"."unexpected" (id INT)'],
+    'alter' => ['ALTER TABLE `other_database`.`unexpected` ADD COLUMN value INT'],
+    'insert' => ['INSERT INTO `other_database`.`unexpected` (id) VALUES (1)'],
+    'delete' => ['DELETE FROM `other_database`.`unexpected`'],
+    'comments between identifiers' => ['CREATE TABLE other_database /* hint */ . unexpected (id INT)'],
+    'executable comment' => ['/*!50000CREATE TABLE other_database.unexpected (id INT)*/'],
+    'drop database' => ['DROP DATABASE other_database'],
+    'create schema' => ['CREATE SCHEMA other_database'],
+    'switch database' => ['USE other_database'],
+]);
 
 test('the protected preview cannot execute SQL on a secondary connection', function () {
     $secondary = new MySqlConnection($this->createMock(PDO::class), 'other', '', ['name' => 'other']);

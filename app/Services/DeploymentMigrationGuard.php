@@ -37,6 +37,7 @@ class DeploymentMigrationGuard
             if ($connection->pretending() || self::isReadOnly($query)) {
                 return;
             }
+            self::assertWriteScope($query, $initial['identity']['database']);
             if ($preview) {
                 throw new RuntimeException('Écriture réelle refusée pendant l’aperçu des migrations.');
             }
@@ -104,6 +105,31 @@ class DeploymentMigrationGuard
     {
         return preg_match('/\A\s*(select|show|describe)\b/i', $query)
             && ! str_contains(rtrim($query, "; \t\r\n"), ';');
+    }
+
+    private static function assertWriteScope(string $query, string $database): void
+    {
+        $literalsAndComments = <<<'REGEX'
+~'(?:''|\\.|[^'\\])*'|/\*.*?\*/|--[\t ][^\r\n]*|\#[^\r\n]*~s
+REGEX;
+        $code = preg_replace_callback($literalsAndComments, function (array $match): string {
+            if (str_starts_with($match[0], '/*!')) {
+                return preg_replace('~\A/\*![0-9]*\s*~', ' ', substr($match[0], 0, -2));
+            }
+
+            return ' ';
+        }, $query);
+        if (preg_match('/\A\s*(?:use|grant|revoke)\b|\b(?:create|alter|drop)\s+(?:database|schema|user|role|server|tablespace)\b/i', $code)) {
+            throw new RuntimeException('Opération globale ou changement de schéma hors de la base vérifiée ; écriture refusée.');
+        }
+        $identifier = '(?:`(?:``|[^`])+`|"(?:""|[^"])+"|[a-zA-Z_][a-zA-Z0-9_$]*)';
+        preg_match_all('~('.$identifier.')\s*\.\s*(?:'.$identifier.'|\*)~', $code, $matches);
+        foreach ($matches[1] as $qualifier) {
+            $qualifier = str_replace(['``', '""'], ['`', '"'], trim($qualifier, '`"'));
+            if ($qualifier !== $database) {
+                throw new RuntimeException('Identifiant SQL qualifié hors de la base vérifiée ou ambigu ; écriture refusée.');
+            }
+        }
     }
 
     /**
