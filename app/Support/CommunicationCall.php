@@ -9,7 +9,7 @@ class CommunicationCall
 {
     public static function closesAt(): CarbonImmutable
     {
-        return CarbonImmutable::parse('2026-11-14 00:00:00', 'Africa/Dakar');
+        return CarbonImmutable::parse('2026-11-26 00:00:00', 'Africa/Dakar');
     }
 
     public static function isOpen(): bool
@@ -121,6 +121,19 @@ class CommunicationCall
                 'training' => 'Bac+2 en audiovisuel ou expérience équivalente.',
                 'experience' => 'Au moins 3 ans d’expérience pertinente en prise de vue photographique, captation vidéo, prise de son et montage audiovisuel.',
                 'skills' => 'Maîtrise de la prise de vue, du son et d’un logiciel de montage (Premiere Pro, DaVinci ou équivalent).',
+            ],
+            'redacteur' => [
+                'key' => 'redacteur',
+                'title' => 'Rédacteur',
+                'mission' => 'Rédiger et adapter les contenus institutionnels de la Cellule en veillant à la fiabilité des informations et au respect de la ligne éditoriale.',
+                'responsibilities' => [
+                    'Collecter et vérifier les informations, sources, dates et références auprès des interlocuteurs concernés.',
+                    'Rédiger les articles, comptes rendus et textes de publication adaptés aux publics et aux supports.',
+                    'Intégrer les corrections, respecter les délais, archiver les versions validées et renseigner le suivi de production.',
+                ],
+                'training' => 'Au minimum Bac+3 en journalisme, lettres ou communication.',
+                'experience' => 'Au moins un an de pratique de la rédaction et de la vérification des sources.',
+                'skills' => 'Aptitude à la synthèse, excellente expression écrite, vérification des sources et maîtrise des outils bureautiques.',
             ],
         ];
     }

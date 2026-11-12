@@ -10,7 +10,7 @@
             Dans le cadre de la restructuration et du renforcement de sa Cellule de communication,
             le MSHP invite ses agents fonctionnaires et contractuels à présenter leur candidature.
         </p>
-        <p class="mt-4 text-sm font-semibold text-emerald-800">Date limite : 13 novembre 2026 à 23 h 59, heure de Dakar.</p>
+        <p class="mt-4 text-sm font-semibold text-emerald-800">Date limite : 25 novembre 2026 à 23 h 59, heure de Dakar.</p>
     </header>
 
     @if (session('communication_application_submitted'))
@@ -25,7 +25,7 @@
     @elseif (! $isOpen)
         <section class="rounded-lg border border-gray-200 bg-white p-6 sm:p-8">
             <h2 class="text-xl font-semibold text-gray-900">Cet appel à candidatures est clos</h2>
-            <p class="mt-3 text-sm leading-6 text-gray-600">Les dépôts ont pris fin le 13 novembre 2026 à 23 h 59, heure de Dakar. Les dossiers déjà déposés restent conservés.</p>
+            <p class="mt-3 text-sm leading-6 text-gray-600">Les dépôts ont pris fin le 25 novembre 2026 à 23 h 59, heure de Dakar. Les dossiers déjà déposés restent conservés.</p>
         </section>
     @else
         @if ($uploadError)
