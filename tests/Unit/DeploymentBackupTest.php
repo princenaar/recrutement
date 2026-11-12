@@ -78,7 +78,7 @@ test('a complete private dump is verified before it is published with an integri
         ->and($manifest['revision'])->toBe($this->revision)
         ->and($manifest['tables'])->toBe(['agents', 'migrations'])
         ->and(json_encode($manifest))->not->toContain('secret', 'fixture-user')
-        ->and($this->arguments)->toContain('--single-transaction', '--quick', '--skip-lock-tables', '--routines', '--events', '--triggers', '--host=fixture-host', '--port=3307')
+        ->and($this->arguments)->toContain('--single-transaction', '--quick', '--skip-lock-tables', '--no-tablespaces', '--routines', '--events', '--triggers', '--host=fixture-host', '--port=3307')
         ->and($this->arguments[1])->toBe('--defaults-file='.dirname($this->path).'/.client.cnf')
         ->and(implode(' ', $this->arguments))->not->toContain('secret')
         ->and($this->credentials)->toContain('password="secret\\"\\\\\\npassword"')

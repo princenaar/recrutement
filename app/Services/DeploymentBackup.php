@@ -106,7 +106,7 @@ class DeploymentBackup
                 ? ['--protocol=SOCKET', '--socket='.$socket]
                 : ['--protocol=TCP', '--host='.$config['host'], '--port='.($config['port'] ?? 3306)];
             $arguments = [$client, '--defaults-file='.$credentials, ...$transport,
-                '--single-transaction', '--quick', '--skip-lock-tables', '--hex-blob',
+                '--single-transaction', '--quick', '--skip-lock-tables', '--no-tablespaces', '--hex-blob',
                 '--routines', '--events', '--triggers', '--comments', '--dump-date',
                 '--default-character-set=utf8mb4', '--result-file='.$path.'.partial',
                 '--databases', '--', $report['identity']['database']];
