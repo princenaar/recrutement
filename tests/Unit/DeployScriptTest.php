@@ -27,7 +27,7 @@ class DeployScriptTest extends TestCase
             }
         }
         copy(dirname(__DIR__, 2).'/deploy.sh', $this->runtime.'/deploy.sh');
-        foreach (['.env', 'artisan', 'vendor/autoload.php', 'app/Services/DeploymentPreflight.php', 'app/Services/DeploymentMigrationGuard.php', 'public/build/manifest.json'] as $file) {
+        foreach (['.env', 'artisan', 'vendor/autoload.php', 'app/Services/DeploymentPreflight.php', 'app/Services/DeploymentMigrationGuard.php', 'app/Services/DeploymentBackup.php', 'public/build/manifest.json'] as $file) {
             file_put_contents($this->runtime.'/'.$file, 'fixture');
         }
         $functions = str_replace("\r\n", "\n", $this->fakeExecutable());
@@ -36,7 +36,7 @@ class DeployScriptTest extends TestCase
         $functions = str_replace(['$PPID', 'exit '], ['$$', 'return '], $functions);
         $functions = preg_replace_callback('/\$([A-Z][A-Z_0-9]*|[12])\b/', fn (array $match): string => '${'.$match[1].':-}', $functions);
         $functions = "fake_command() {\n".$functions."\n}\n";
-        foreach (['git', 'php', 'composer', 'curl', 'tty'] as $command) {
+        foreach (['git', 'php', 'composer', 'curl', 'tty', 'mysqldump'] as $command) {
             $functions .= $command.'() { fake_command '.$command.' "$@"; }'."\n";
         }
         file_put_contents($this->runtime.'/functions.sh', $functions);
@@ -71,7 +71,10 @@ class DeployScriptTest extends TestCase
         $journal = file_get_contents($this->runtime.'/storage/logs/deployments.log');
         $this->assertStringContainsString('avant='.str_repeat('a', 40), $journal);
         $this->assertStringContainsString('après='.str_repeat('b', 40), $journal);
-        $this->assertStringContainsString('sauvegarde=backup-fixture', $journal);
+        $this->assertStringContainsString('/backups/database.sql', $journal);
+        $this->assertLessThan(strpos($trace, "backup-create\n"), strpos($trace, "artisan down\n"));
+        $this->assertLessThan(strpos($trace, "git merge\n"), strpos($trace, "backup-create\n"));
+        $this->assertFileExists($this->runtime.'/backups/database.sql');
         $this->assertStringContainsString('phase=termine Résultat code=0', $journal);
         $this->assertSame('0022', trim(file_get_contents($this->runtime.'/git-umask')));
     }
@@ -119,6 +122,7 @@ class DeployScriptTest extends TestCase
     public static function failurePhases(): array
     {
         return [
+            'backup creation' => ['backup-create', true],
             'fetch' => ['git fetch', false],
             'fast forward' => ['git merge', true],
             'activation' => ['artisan down', true],
@@ -145,6 +149,7 @@ class DeployScriptTest extends TestCase
         $this->assertSame($code, $process->getExitCode(), $this->processOutput($process));
         $this->assertFileExists($this->maintenancePath());
         $this->assertDirectoryDoesNotExist($this->lockPath());
+        $this->assertFileDoesNotExist($this->runtime.'/backups/.client.cnf');
         if ($operation !== 'curl') {
             $this->assertStringNotContainsString("artisan up\n", $this->trace());
         } else {
@@ -156,6 +161,8 @@ class DeployScriptTest extends TestCase
     public static function interruptions(): array
     {
         return [
+            'INT during backup' => ['backup-create', 'INT', 130],
+            'TERM during backup' => ['backup-create', 'TERM', 143],
             'INT before migrations' => ['composer install', 'INT', 130],
             'TERM before migrations' => ['composer install', 'TERM', 143],
             'INT during migration' => ['artisan migrate', 'INT', 130],
@@ -226,7 +233,35 @@ class DeployScriptTest extends TestCase
         $this->assertStringNotContainsString('artisan ', $this->trace());
         $this->assertStringNotContainsString('composer ', $this->trace());
         $this->assertStringNotContainsString('git fetch', $this->trace());
+        $this->assertStringNotContainsString("backup-create\n", $this->trace());
         $this->assertDirectoryDoesNotExist($this->lockPath());
+    }
+
+    public function test_a_failed_backup_blocks_code_updates_and_all_migrations(): void
+    {
+        $process = $this->deploy(['FAIL_AT' => 'backup-create']);
+        $this->assertSame(37, $process->getExitCode(), $this->processOutput($process));
+        $this->assertFileExists($this->maintenancePath());
+        $this->assertStringNotContainsString("git merge\n", $this->trace());
+        $this->assertStringNotContainsString("artisan migrate\n", $this->trace());
+        $this->assertStringNotContainsString("preview\n", $this->trace());
+    }
+
+    public function test_backup_preparation_failure_prevents_all_application_writes(): void
+    {
+        $process = $this->deploy(['FAIL_AT' => 'backup-prepare']);
+        $this->assertSame(1, $process->getExitCode(), $this->processOutput($process));
+        $this->assertStringNotContainsString('artisan ', $this->trace());
+        $this->assertStringNotContainsString('git fetch', $this->trace());
+    }
+
+    public function test_an_empty_backup_blocks_code_updates_and_all_migrations(): void
+    {
+        $process = $this->deploy(['EMPTY_BACKUP' => '1']);
+        $this->assertSame(1, $process->getExitCode(), $this->processOutput($process));
+        $this->assertFileExists($this->maintenancePath());
+        $this->assertStringNotContainsString("git merge\n", $this->trace());
+        $this->assertStringNotContainsString("artisan migrate\n", $this->trace());
     }
 
     public function test_a_manifest_missing_from_the_target_prevents_opening(): void
@@ -342,7 +377,11 @@ if [[ "$name" == "php" ]]; then
             operation="php-version"
         fi
     else
-        if [[ "$DEPLOY_CLEAR_MANIFESTS" == "1" ]]; then
+        if [[ "$DEPLOY_BACKUP_PREPARE" == "1" ]]; then
+            operation="backup-prepare"
+        elif [[ "$DEPLOY_BACKUP_CREATE" == "1" ]]; then
+            operation="backup-create"
+        elif [[ "$DEPLOY_CLEAR_MANIFESTS" == "1" ]]; then
             operation="bootstrap-manifests"
         else
             operation="preflight ready=$DEPLOY_REQUIRE_READY"
@@ -353,6 +392,7 @@ elif [[ "$name" == "git" || "$name" == "composer" ]]; then
 fi
 printf '%s\n' "$operation" >> "$FAKE_ROOT/trace"
 if [[ "$SIGNAL_AT" == "$operation" ]]; then
+    if [[ "$operation" == "backup-create" ]]; then printf 'private-credential-fixture' > "$FAKE_ROOT/backups/.client.cnf"; fi
     kill -s "$SIGNAL_NAME" "$(<"$FAKE_ROOT/process-pid")"
     exit 0
 fi
@@ -395,6 +435,17 @@ tty)
 php)
     case "$operation" in
         php-version) ;;
+        backup-prepare)
+            cat >/dev/null
+            mkdir -p "$FAKE_ROOT/backups"
+            printf '%s/backups/database.sql' "$FAKE_ROOT" ;;
+        backup-create)
+            cat >/dev/null
+            if [[ "$EMPTY_BACKUP" == "1" ]]; then
+                touch "$DEPLOY_BACKUP_REFERENCE"
+            else
+                printf 'verified-dump' > "$DEPLOY_BACKUP_REFERENCE"
+            fi ;;
         hash) cat >/dev/null; printf '%s' "$FAKE_SQL_HASH" ;;
         bootstrap-manifests) cat >/dev/null; rm -f "$FAKE_ROOT/obsolete-providers" ;;
         "preflight ready="*)
@@ -411,7 +462,7 @@ php)
             if [[ "$DRIFT_AT" == "ready" && "$DEPLOY_REQUIRE_READY" == "1" ]]; then exit 37; fi
             active=0
             if [[ -f "$FAKE_ROOT/storage/framework/down" ]]; then active=1; fi
-            printf '%s\tmysql\t%s\thttps://fixture.invalid\t{"database":"fixture","server_uuid":"fixture-uuid"}\tbackup-fixture\t%s/storage/framework/down' "$fingerprint" "$active" "$FAKE_ROOT" ;;
+            printf '%s\tmysql\t%s\thttps://fixture.invalid\t{"database":"fixture","server_uuid":"fixture-uuid"}\t%s\t%s/storage/framework/down' "$fingerprint" "$active" "$DEPLOY_BACKUP_REFERENCE" "$FAKE_ROOT" ;;
         "artisan down")
             if [[ "$FAIL_RECOVERY" == "1" && -f "$FAKE_ROOT/opened" ]]; then
                 rmdir "$FAKE_ROOT/storage/framework/cache" "$FAKE_ROOT/storage/framework/views" "$FAKE_ROOT/storage/framework"
