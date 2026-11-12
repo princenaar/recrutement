@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 # Mises à jour cPanel : bash deploy.sh (depuis une installation déjà configurée).
-# PHP >= 8.4, Composer, Git et cURL doivent être disponibles dans le PATH.
-# Définir les quatre paramètres DEPLOY_* décrits dans .env.example après sauvegarde
-# et arrêt des workers, crons et autres écritures. Leur reprise reste manuelle.
-# Installer ce script et DeploymentPreflight.php depuis la même révision.
+# PHP >= 8.4, Composer, Git, cURL et mariadb-dump ou mysqldump sont requis.
+# Définir la cible DEPLOY_* et confirmer l’arrêt des workers/crons et autres écritures.
+# La sauvegarde privée est créée automatiquement ; la reprise des écritures reste manuelle.
+# Installer ce script et ses services Deployment* depuis la même révision.
 
 set -Eeuo pipefail
 readonly EXPECTED_BRANCH="main"
@@ -21,6 +21,8 @@ revision_before="inconnue"
 revision_target="inconnue"
 revision_after="inconnue"
 journal=""
+backup_completed=0
+backup_credentials=""
 
 log() {
     local message
@@ -69,6 +71,9 @@ cleanup() {
     [[ "$BASHPID" == "$$" ]] || exit "$exit_code"
     trap - EXIT ERR INT TERM
     set +e
+    if [[ -n "$backup_credentials" && -f "$backup_credentials" && ! -L "$backup_credentials" ]]; then
+        rm -f -- "$backup_credentials" || log "Suppression du fichier privé d’authentification impossible ; intervention requise."
+    fi
     log "Résultat code=$exit_code avant=$revision_before cible=$revision_target après=$revision_after"
     if [[ "$lock_acquired" -eq 1 && -f "$DEPLOY_LOCK_DIRECTORY/pid" \
         && "$(<"$DEPLOY_LOCK_DIRECTORY/pid")" == "$$" ]]; then
@@ -112,6 +117,36 @@ try {
 PHP
 }
 
+prepare_backup() {
+    DEPLOY_BACKUP_PREPARE=1 php <<'PHP'
+<?php
+try {
+    require __DIR__.'/vendor/autoload.php';
+    echo App\Services\DeploymentBackup::prepare(__DIR__, getenv('HOME') ?: '');
+} catch (Throwable) {
+    fwrite(STDERR, "Préparation du dossier privé de sauvegarde impossible.\n");
+    exit(1);
+}
+PHP
+}
+
+create_backup() {
+    DEPLOY_BACKUP_CREATE=1 DEPLOY_FINGERPRINT="$baseline_fingerprint" DEPLOY_REVISION="$revision_before" php <<'PHP'
+<?php
+try {
+    require __DIR__.'/vendor/autoload.php';
+    $parameters = App\Services\DeploymentPreflight::parameters(__DIR__);
+    $app = require __DIR__.'/bootstrap/app.php';
+    $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+    $result = $app->make(App\Services\DeploymentBackup::class)->create($parameters, getenv('DEPLOY_FINGERPRINT'), getenv('DEPLOY_REVISION'));
+    echo 'Sauvegarde privée vérifiée '.json_encode($result, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR).PHP_EOL;
+} catch (Throwable) {
+    fwrite(STDERR, "Sauvegarde refusée ou incomplète ; maintenance conservée. Aucun détail sensible affiché.\n");
+    exit(1);
+}
+PHP
+}
+
 verify_target() {
     local report fingerprint connection active url identity backup path fresh_report fresh_fingerprint
     if ! report="$(preflight "$1")"; then
@@ -148,6 +183,7 @@ migration_preview() {
 }
 
 run_migrations() {
+    [[ "$backup_completed" -eq 1 ]] || fail "une sauvegarde vérifiée est requise avant toute migration."
     DEPLOY_FINGERPRINT="$baseline_fingerprint" DEPLOY_REVISION="$revision_after" php -r '
 try {
     require getcwd()."/vendor/autoload.php";
@@ -170,12 +206,15 @@ main() {
     for command_name in git php composer curl; do
         command -v "$command_name" >/dev/null 2>&1 || fail "commande '$command_name' introuvable."
     done
+    command -v mariadb-dump >/dev/null 2>&1 || command -v mysqldump >/dev/null 2>&1 \
+        || fail "mariadb-dump ou mysqldump est requis pour la sauvegarde automatique."
     php -r 'exit(PHP_VERSION_ID >= 80400 ? 0 : 1);' \
         || fail "PHP 8.4 minimum requis."
     [[ -f .env && -f artisan && -f vendor/autoload.php && -f public/build/manifest.json ]] \
         || fail ".env, artisan, dépendances installées et manifeste Vite sont requis."
     [[ -f app/Services/DeploymentPreflight.php ]] || fail "installer le script et son service depuis la même révision."
     [[ -f app/Services/DeploymentMigrationGuard.php ]] || fail "le garde des requêtes de migration est requis."
+    [[ -f app/Services/DeploymentBackup.php ]] || fail "le service de sauvegarde automatique est requis."
     for command_name in storage/framework storage/framework/cache storage/framework/views storage/logs bootstrap/cache public; do
         [[ -d "$command_name" && -w "$command_name" ]] || fail "répertoire '$command_name' absent ou non inscriptible."
     done
@@ -201,6 +240,12 @@ main() {
     [[ -z "$(git status --porcelain)" ]] || fail "le dépôt contient des changements locaux."
     revision_before="$(git rev-parse HEAD)"
     revision_after="$revision_before"
+    phase="preparation-sauvegarde"
+    if ! DEPLOY_BACKUP_REFERENCE="$(prepare_backup)"; then
+        fail "le dossier privé de sauvegarde n'est pas prêt."
+    fi
+    export DEPLOY_BACKUP_REFERENCE
+    backup_credentials="$(dirname "$DEPLOY_BACKUP_REFERENCE")/.client.cnf"
     phase="datasource-initiale"
     verify_target 0
     phase="git-fetch"
@@ -213,6 +258,11 @@ main() {
         php artisan down --no-interaction
     fi
     verify_target 0
+    phase="sauvegarde"
+    create_backup
+    [[ -s "$DEPLOY_BACKUP_REFERENCE" ]] || fail "le fichier de sauvegarde est absent ou vide."
+    verify_target 0
+    backup_completed=1
     phase="git-fast-forward"
     git merge --ff-only "$revision_target"
     revision_after="$(git rev-parse HEAD)"
