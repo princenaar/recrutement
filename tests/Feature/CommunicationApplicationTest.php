@@ -37,13 +37,15 @@ function communicationApplicationPayload(array $overrides = []): array
     ], $overrides);
 }
 
-it('shows the five documented positions and links the public form from home', function () {
+it('shows the six documented positions and links the public form from home', function () {
     $url = route('communication-applications.form');
 
-    $this->get('/')->assertOk()->assertSee($url, false);
+    $this->get('/')->assertOk()->assertSee($url, false)
+        ->assertSee('Six profils recherchés')
+        ->assertSee('25 novembre 2026 inclus.');
     $this->get($url)->assertOk()
         ->assertSee('Rejoindre la Cellule de communication')
-        ->assertSee('13 novembre 2026')
+        ->assertSee('25 novembre 2026')
         ->assertSee('23 h 59')
         ->assertSee(CommunicationCall::maxUploadLabel())
         ->assertSee('Infographiste')
@@ -51,15 +53,26 @@ it('shows the five documented positions and links the public form from home', fu
         ->assertSee('Webdesigner')
         ->assertSee('Community manager')
         ->assertSee('Vidéaste-photographe')
-        ->assertDontSee('Rédacteur')
+        ->assertSee('<option value="redacteur"', false)
+        ->assertSee('Fiche du poste : Rédacteur')
+        ->assertSee('Rédiger et adapter les contenus institutionnels de la Cellule en veillant à la fiabilité des informations et au respect de la ligne éditoriale.')
+        ->assertSee('Collecter et vérifier les informations, sources, dates et références auprès des interlocuteurs concernés.')
+        ->assertSee('Rédiger les articles, comptes rendus et textes de publication adaptés aux publics et aux supports.')
+        ->assertSee('Intégrer les corrections, respecter les délais, archiver les versions validées et renseigner le suivi de production.')
+        ->assertSee('Au minimum Bac+3 en journalisme, lettres ou communication.')
+        ->assertSee('Au moins un an de pratique de la rédaction et de la vérification des sources.')
+        ->assertSee('Aptitude à la synthèse, excellente expression écrite, vérification des sources et maîtrise des outils bureautiques.')
         ->assertSee('Bac+2 minimum en design graphique')
         ->assertSee('Au moins 4 ans d’expérience');
+
+    expect(CommunicationCall::positionOptions())->toHaveCount(6);
 });
 
-it('stores a complete public application and a private CV then confirms receipt', function () {
+it('stores a complete public application and a private CV then confirms receipt', function (string $position) {
     $this->followingRedirects()->post(route('communication-applications.store'), communicationApplicationPayload([
         'first_name' => ' Awa   Marie ',
         'email' => ' AWA.DIOP@EXAMPLE.COM ',
+        'position' => $position,
     ]))->assertOk()->assertSessionHasNoErrors()
         ->assertSee('Votre dossier a bien été reçu')
         ->assertDontSee('id="communication-application-form"', false);
@@ -67,12 +80,12 @@ it('stores a complete public application and a private CV then confirms receipt'
     $application = CommunicationApplication::sole();
     expect($application->first_name)->toBe('Awa Marie')
         ->and($application->email)->toBe('awa.diop@example.com')
-        ->and($application->position)->toBe('infographiste')
+        ->and($application->position)->toBe($position)
         ->and($application->motivation)->toContain('cinq années')
         ->and($application->cv_path)->toStartWith('communication-applications/')->toEndWith('/cv.pdf');
     Storage::disk('private')->assertExists($application->cv_path);
     Storage::disk('public')->assertMissing($application->cv_path);
-});
+})->with(['infographiste', 'redacteur']);
 
 it('requires every field and shows French errors', function () {
     $this->from(route('communication-applications.form'))->post(route('communication-applications.store'), [])
@@ -94,7 +107,7 @@ it('rejects an invalid field without storing a dossier', function (array $overri
 })->with([
     'email' => [['email' => 'invalid'], 'email'],
     'array email' => [['email' => ['awa.diop@example.com']], 'email'],
-    'unlisted role' => [['position' => 'redacteur'], 'position'],
+    'unlisted role' => [['position' => 'poste-inconnu'], 'position'],
     'array role' => [['position' => ['infographiste']], 'position'],
     'status' => [['administrative_status' => 'other'], 'administrative_status'],
     'long motivation' => [['motivation' => str_repeat('a', 10001)], 'motivation'],
@@ -222,25 +235,30 @@ it('enforces the Dakar deadline on GET and POST', function (string $instant, boo
         $response->assertSessionHasNoErrors();
         expect(CommunicationApplication::count())->toBe(1);
     } else {
-        $page->assertSee('Cet appel à candidatures est clos')->assertDontSee('id="communication-application-form"', false);
-        $response->assertSessionHasErrors('closed');
+        $page->assertSee('Cet appel à candidatures est clos')
+            ->assertSee('Les dépôts ont pris fin le 25 novembre 2026 à 23 h 59, heure de Dakar.')
+            ->assertDontSee('id="communication-application-form"', false);
+        $response->assertSessionHasErrors(['closed' => 'Cet appel est clos depuis le 26 novembre 2026 à 00 h 00 (heure de Dakar).']);
         expect(CommunicationApplication::count())->toBe(0);
         expect(Storage::disk('private')->allFiles())->toBeEmpty();
     }
 })->with([
-    'last accepted second' => ['2026-11-13 23:59:59', true],
-    'exact closing instant' => ['2026-11-14 00:00:00', false],
-    'after closing' => ['2026-11-14 00:00:01', false],
+    'previous last accepted second' => ['2026-11-13 23:59:59', true],
+    'previous closing instant remains open' => ['2026-11-14 00:00:00', true],
+    'after previous closing remains open' => ['2026-11-14 00:00:01', true],
+    'last accepted second' => ['2026-11-25 23:59:59', true],
+    'exact closing instant' => ['2026-11-26 00:00:00', false],
+    'after closing' => ['2026-11-26 00:00:01', false],
 ]);
 
-it('lets administrators read and search dossiers and filter by position', function () {
+it('lets administrators read and search dossiers and filter by position', function (string $position, string $label) {
     $admin = User::factory()->create();
-    $application = CommunicationApplication::factory()->create(['first_name' => 'Awa', 'last_name' => 'Diop', 'position' => 'infographiste', 'motivation' => '<script>alert("unsafe")</script>']);
+    $application = CommunicationApplication::factory()->create(['first_name' => 'Awa', 'last_name' => 'Diop', 'position' => $position, 'motivation' => '<script>alert("unsafe")</script>']);
     $other = CommunicationApplication::factory()->create(['first_name' => 'Moussa', 'last_name' => 'Ndiaye', 'position' => 'webdesigner']);
 
     $this->get(CommunicationApplicationResource::getUrl('index'))->assertRedirect(route('filament.admin.auth.login'));
     $this->actingAs($admin)->get(CommunicationApplicationResource::getUrl('view', ['record' => $application]))
-        ->assertOk()->assertSee('Awa Diop')->assertSee('Ouvrir le CV')->assertSee('Télécharger le CV')
+        ->assertOk()->assertSee('Awa Diop')->assertSee($label)->assertSee('Ouvrir le CV')->assertSee('Télécharger le CV')
         ->assertSee('<iframe', false)->assertSee($application->motivation)
         ->assertDontSee($application->motivation, false);
 
@@ -251,7 +269,7 @@ it('lets administrators read and search dossiers and filter by position', functi
         ->searchTable('Moussa')
         ->assertCanSeeTableRecords([$other])->assertCanNotSeeTableRecords([$application])
         ->searchTable('')
-        ->filterTable('position', 'infographiste')
+        ->filterTable('position', $position)
         ->assertCanSeeTableRecords([$application])->assertCanNotSeeTableRecords([$other]);
 
     expect(CommunicationApplicationResource::canCreate())->toBeFalse()
@@ -259,7 +277,10 @@ it('lets administrators read and search dossiers and filter by position', functi
         ->and(CommunicationApplicationResource::canDelete($application))->toBeFalse()
         ->and(CommunicationApplicationResource::canDeleteAny())->toBeFalse();
     $this->get(CommunicationApplicationResource::getUrl('view', ['record' => $application]).'/edit')->assertNotFound();
-});
+})->with([
+    'infographiste' => ['infographiste', 'Infographiste'],
+    'redacteur' => ['redacteur', 'Rédacteur'],
+]);
 
 it('serves CV previews and downloads only to authenticated administrators', function () {
     $application = CommunicationApplication::factory()->create();

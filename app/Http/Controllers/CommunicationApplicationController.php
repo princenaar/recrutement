@@ -34,7 +34,7 @@ class CommunicationApplicationController extends Controller
     {
         if (! CommunicationCall::isOpen()) {
             return redirect()->route('communication-applications.form')
-                ->withErrors(['closed' => 'Cet appel est clos depuis le 14 novembre 2026 à 00 h 00 (heure de Dakar).']);
+                ->withErrors(['closed' => 'Cet appel est clos depuis le 26 novembre 2026 à 00 h 00 (heure de Dakar).']);
         }
 
         if (is_string($request->input('email'))) {
